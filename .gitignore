@@ -1,0 +1,26 @@
+# Visual Studio
+.vs/
+*.user
+*.suo
+
+# Archivos compilados de .NET
+bin/
+obj/
+Debug/
+Release/
+
+# Archivos temporales
+*.tmp
+*.log
+
+# Configuraciones locales y secretos
+.env
+.env.*
+appsettings.Development.json
+secrets.json
+
+# Resultados de pruebas
+TestResults/
+
+# Paquetes NuGet locales
+packages/
