@@ -2,4 +2,5 @@
   <Project Path="CVSPharmacy_Backend.Api/CVSPharmacy_Backend.Api.csproj" />
   <Project Path="CVSPharmacy_Backend.Core/CVSPharmacy_Backend.Core.csproj" Id="711fd2d4-53b0-40be-a99c-0258ca21e92f" />
   <Project Path="CVSPharmacy_Backend.Infraestructure/CVSPharmacy_Backend.Infraestructure.csproj" />
+  <Project Path="CVSPharmacy_Backend.Service/CVSPharmacy_Backend.Service.csproj" Id="53fd85a1-5c07-4d7e-8e51-47dd70d30b24" />
 </Solution>
