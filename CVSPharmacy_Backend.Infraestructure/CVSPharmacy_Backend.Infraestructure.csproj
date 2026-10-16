@@ -25,4 +25,10 @@
     <ProjectReference Include="..\CVSPharmacy_Backend.Core\CVSPharmacy_Backend.Core.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Data\Configurations\" />
+    <Folder Include="Data\Mappings\" />
+    <Folder Include="Data\Repositories\" />
+  </ItemGroup>
+
 </Project>
