@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MySqlConnector;
+using CVSPharmacy_Backend.Api.Response;
 
 namespace CVSPharmacy_Backend.Api.Controllers
 {
@@ -82,30 +83,23 @@ namespace CVSPharmacy_Backend.Api.Controllers
 
         // GET: api/products?q=paracetamol&active=true
         [HttpGet]
-        public async Task<IActionResult> GetProductos(
-            [FromQuery] string? q,
-            [FromQuery] bool? active)
+        public async Task<IActionResult> GetProductos([FromQuery] string? q, [FromQuery] bool? active)
         {
-            var productos = await _productoRepository
-                .GetAllProductosAsync();
-
+            var productos = await _productoRepository.GetAllProductosAsync();
             if (!string.IsNullOrWhiteSpace(q))
             {
-                productos = productos.Where(p =>
-                    p.Codigo.Contains(q, StringComparison.OrdinalIgnoreCase)
-                    || p.Nombre.Contains(q, StringComparison.OrdinalIgnoreCase));
+                productos = productos.Where(p => p.Codigo.Contains(q, StringComparison.OrdinalIgnoreCase) || p.Nombre.Contains(q, StringComparison.OrdinalIgnoreCase));
             }
 
             if (active.HasValue)
             {
-                productos = productos.Where(p =>
-                    p.Activo == active.Value);
+                productos = productos.Where(p => p.Activo == active.Value);
             }
 
-            var productosDto = _mapper
-                .Map<IEnumerable<ProductoDto>>(productos);
+            var productosDto = _mapper.Map<IEnumerable<ProductoDto>>(productos);
+            var response = new ApiResponse<IEnumerable<ProductoDto>>(productosDto);
 
-            return Ok(productosDto);
+            return Ok(response);
         }
 
         // GET: api/products/5
@@ -124,8 +118,9 @@ namespace CVSPharmacy_Backend.Api.Controllers
             }
 
             var productoDto = _mapper.Map<ProductoDto>(producto);
+            var response = new ApiResponse<ProductoDto>(productoDto);
 
-            return Ok(productoDto);
+            return Ok(response);
         }
 
         // GET: api/products/low-stock
@@ -138,7 +133,9 @@ namespace CVSPharmacy_Backend.Api.Controllers
             var productosDto = _mapper
                 .Map<IEnumerable<ProductoDto>>(productos);
 
-            return Ok(productosDto);
+            var response = new ApiResponse<IEnumerable<ProductoDto>>(productosDto);
+
+            return Ok(response);
         }
 
         // POST: api/products
@@ -191,17 +188,17 @@ namespace CVSPharmacy_Backend.Api.Controllers
 
             var resultadoDto = _mapper.Map<ProductoDto>(producto);
 
+            var response = new ApiResponse<ProductoDto>(resultadoDto);
+
             return CreatedAtAction(
                 nameof(GetProductoById),
                 new { id = producto.Id },
-                resultadoDto);
+                response);
         }
 
         // PUT: api/products/5
         [HttpPut("{id:int}")]
-        public async Task<IActionResult> UpdateProducto(
-            int id,
-            [FromBody] GuardarProductoDto productoDto)
+        public async Task<IActionResult> UpdateProducto(int id, [FromBody] GuardarProductoDto productoDto)
         {
             var resultado = await _validator.ValidateAsync(productoDto);
 
@@ -256,22 +253,18 @@ namespace CVSPharmacy_Backend.Api.Controllers
                 });
             }
 
-            var productoActualizado = await _productoRepository
-                .GetProductoByIdAsync(id);
+            var productoActualizado = await _productoRepository.GetProductoByIdAsync(id);
 
             var resultadoDto = _mapper.Map<ProductoDto>(productoActualizado);
-
-            return Ok(resultadoDto);
+            var response = new ApiResponse<ProductoDto>(resultadoDto);
+            return Ok(response);
         }
 
         // PATCH: api/products/5/status
         [HttpPatch("{id:int}/status")]
-        public async Task<IActionResult> CambiarEstadoProducto(
-            int id,
-            [FromBody] CambiarEstadoProductoDto estadoDto)
+        public async Task<IActionResult> CambiarEstadoProducto(int id, [FromBody] CambiarEstadoProductoDto estadoDto)
         {
-            var producto = await _productoRepository
-                .GetProductoParaActualizarAsync(id);
+            var producto = await _productoRepository.GetProductoParaActualizarAsync(id);
 
             if (producto == null)
             {
@@ -285,12 +278,14 @@ namespace CVSPharmacy_Backend.Api.Controllers
 
             await _productoRepository.UpdateProducto(producto);
 
-            return Ok(new
+            var response = new ApiResponse<object>(new
             {
                 message = "Estado actualizado correctamente.",
                 id = producto.Id,
                 activo = producto.Activo
             });
+
+            return Ok(response);
         }
 
         #endregion
