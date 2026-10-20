@@ -1,7 +1,9 @@
-
+using CVSPharmacy_Backend.Infraestructure.Mappings;
+using CVSPharmacy_Backend.Core.Interfaces;
 using CVSPharmacy_Backend.Infraestructure.Data;
+using CVSPharmacy_Backend.Infraestructure.Repositories;
 using Microsoft.EntityFrameworkCore;
-
+using CVSPharmacy_Backend.Services.Validators;
 namespace CVSPharmacy_Backend
 {
     public class Program
@@ -15,9 +17,16 @@ namespace CVSPharmacy_Backend
             builder.Services.AddDbContext<FarmaciaDbContext>(options =>
                 options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString)));
             #endregion
-            //Implementar conexion bd a visual studio
             // Add services to the container.
-
+            #region Inyeccion de Dependencias
+            builder.Services.AddScoped<IProductoRepository, ProductoRepository>();
+            #endregion
+            #region Configurar AutoMapper
+            builder.Services.AddAutoMapper(typeof(ProductoProfile).Assembly);
+            #endregion
+            #region Registrar Validadores
+            builder.Services.AddScoped<GuardarProductoDtoValidator>();
+            #endregion
             builder.Services.AddControllers();
             // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
             builder.Services.AddOpenApi();
