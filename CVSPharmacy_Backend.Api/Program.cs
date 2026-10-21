@@ -1,7 +1,11 @@
-
+using CVSPharmacy_Backend.Infraestructure.Mappings;
+using CVSPharmacy_Backend.Core.Interfaces;
 using CVSPharmacy_Backend.Infraestructure.Data;
+using CVSPharmacy_Backend.Infraestructure.Repositories;
 using Microsoft.EntityFrameworkCore;
-
+using CVSPharmacy_Backend.Services;
+using CVSPharmacy_Backend.Services.Validators.Producto;
+using CVSPharmacy_Backend.Services.Validators.Proveedor;
 namespace CVSPharmacy_Backend
 {
     public class Program
@@ -15,9 +19,22 @@ namespace CVSPharmacy_Backend
             builder.Services.AddDbContext<FarmaciaDbContext>(options =>
                 options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString)));
             #endregion
-            //Implementar conexion bd a visual studio
             // Add services to the container.
-
+            #region Inyeccion de Dependencias
+            builder.Services.AddScoped<IProductoRepository, ProductoRepository>();
+            builder.Services.AddScoped<IProductoService, ProductoService>();
+            builder.Services.AddScoped<IProveedorRepository, ProveedorRepository>();
+            builder.Services.AddScoped<IProveedorService, CVSPharmacy_Backend.Services.ProveedorService>();
+            #endregion
+            #region Configurar AutoMapper
+            builder.Services.AddAutoMapper(typeof(ProductoProfile).Assembly);
+            #endregion
+            #region Registrar Validadores
+            builder.Services.AddScoped<GuardarProductoDtoValidator>();
+            builder.Services.AddScoped<GuardarProveedorDtoValidator>();
+            builder.Services.AddScoped<CambiarEstadoProductoDtoValidator>();
+            builder.Services.AddScoped<CambiarEstadoProveedorDtoValidator>();
+            #endregion
             builder.Services.AddControllers();
             // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
             builder.Services.AddOpenApi();

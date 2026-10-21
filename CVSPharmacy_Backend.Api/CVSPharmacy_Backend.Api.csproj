@@ -17,6 +17,7 @@
   <ItemGroup>
     <ProjectReference Include="..\CVSPharmacy_Backend.Core\CVSPharmacy_Backend.Core.csproj" />
     <ProjectReference Include="..\CVSPharmacy_Backend.Infraestructure\CVSPharmacy_Backend.Infraestructure.csproj" />
+    <ProjectReference Include="..\CVSPharmacy_Backend.Services\CVSPharmacy_Backend.Services.csproj" />
   </ItemGroup>
 
 </Project>
