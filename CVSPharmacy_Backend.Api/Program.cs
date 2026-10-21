@@ -21,14 +21,15 @@ namespace CVSPharmacy_Backend
             // Add services to the container.
             #region Inyeccion de Dependencias
             builder.Services.AddScoped<IProductoRepository, ProductoRepository>();
-            builder.Services.AddScoped<IProductoService, ProductoService>();
-            builder.Services.AddScoped<GuardarProductoDtoValidator>();
+            builder.Services.AddScoped<IProveedorRepository, ProveedorRepository>();
+            builder.Services.AddScoped<IProveedorService, CVSPharmacy_Backend.Services.ProveedorService>();
             #endregion
             #region Configurar AutoMapper
             builder.Services.AddAutoMapper(typeof(ProductoProfile).Assembly);
             #endregion
             #region Registrar Validadores
             builder.Services.AddScoped<GuardarProductoDtoValidator>();
+            builder.Services.AddScoped<GuardarProveedorDtoValidator>();
             #endregion
             builder.Services.AddControllers();
             // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
