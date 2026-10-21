@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using CVSPharmacy_Backend.Services;
 using CVSPharmacy_Backend.Services.Validators.Producto;
 using CVSPharmacy_Backend.Services.Validators.Proveedor;
+using CVSPharmacy_Backend.Services.Service;
 namespace CVSPharmacy_Backend
 {
     public class Program
