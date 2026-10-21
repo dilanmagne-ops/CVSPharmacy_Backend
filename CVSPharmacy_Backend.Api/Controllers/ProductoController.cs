@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MySqlConnector;
 using CVSPharmacy_Backend.Api.Response;
+using CVSPharmacy_Backend.Core.Results;
 
 namespace CVSPharmacy_Backend.Api.Controllers
 {
@@ -18,10 +19,47 @@ namespace CVSPharmacy_Backend.Api.Controllers
         private readonly IProductoRepository _productoRepository;
         private readonly IMapper _mapper;
         private readonly GuardarProductoDtoValidator _validator;
+        private readonly IProductoService _productoService;
+        private IActionResult? ResponderError<T>(ResultadoServicio<T> resultado)
+        {
+            switch (resultado.Estado)
+            {
+                case EstadoResultado.Validacion:
+                    return BadRequest(new
+                    {
+                        message = resultado.Mensaje,
+                        errors = resultado.Errores.Select(e => new
+                        {
+                            field = e.Campo,
+                            error = e.Mensaje
+                        })
+                    });
 
-        public ProductoController(IProductoRepository productoRepository, IMapper mapper, GuardarProductoDtoValidator validator)
+                case EstadoResultado.NoEncontrado:
+                    return NotFound(new
+                    {
+                        message = resultado.Mensaje
+                    });
+
+                case EstadoResultado.Conflicto:
+                    return Conflict(new
+                    {
+                        message = resultado.Mensaje
+                    });
+
+                default:
+                    return null;
+            }
+        }
+
+        public ProductoController(
+            IProductoRepository productoRepository,
+            IProductoService productoService,
+            IMapper mapper,
+            GuardarProductoDtoValidator validator)
         {
             _productoRepository = productoRepository;
+            _productoService = productoService;
             _mapper = mapper;
             _validator = validator;
         }
@@ -85,20 +123,8 @@ namespace CVSPharmacy_Backend.Api.Controllers
         [HttpGet]
         public async Task<IActionResult> GetProductos([FromQuery] string? q, [FromQuery] bool? active)
         {
-            var productos = await _productoRepository.GetAllProductosAsync();
-            if (!string.IsNullOrWhiteSpace(q))
-            {
-                productos = productos.Where(p => p.Codigo.Contains(q, StringComparison.OrdinalIgnoreCase) || p.Nombre.Contains(q, StringComparison.OrdinalIgnoreCase));
-            }
-
-            if (active.HasValue)
-            {
-                productos = productos.Where(p => p.Activo == active.Value);
-            }
-
-            var productosDto = _mapper.Map<IEnumerable<ProductoDto>>(productos);
+            var productosDto = await _productoService.GetAllProductosAsync(q, active);
             var response = new ApiResponse<IEnumerable<ProductoDto>>(productosDto);
-
             return Ok(response);
         }
 
@@ -106,20 +132,15 @@ namespace CVSPharmacy_Backend.Api.Controllers
         [HttpGet("{id:int}")]
         public async Task<IActionResult> GetProductoById(int id)
         {
-            var producto = await _productoRepository
-                .GetProductoByIdAsync(id);
-
-            if (producto == null)
+            var productoDto = await _productoService.GetProductoByIdAsync(id);
+            if (productoDto == null)
             {
                 return NotFound(new
                 {
                     message = "Producto no encontrado."
                 });
             }
-
-            var productoDto = _mapper.Map<ProductoDto>(producto);
             var response = new ApiResponse<ProductoDto>(productoDto);
-
             return Ok(response);
         }
 
@@ -127,164 +148,70 @@ namespace CVSPharmacy_Backend.Api.Controllers
         [HttpGet("low-stock")]
         public async Task<IActionResult> GetProductosStockCritico()
         {
-            var productos = await _productoRepository
-                .GetProductosStockCriticoAsync();
-
-            var productosDto = _mapper
-                .Map<IEnumerable<ProductoDto>>(productos);
-
+            var productosDto = await _productoService.GetProductosStockCriticoAsync();
             var response = new ApiResponse<IEnumerable<ProductoDto>>(productosDto);
-
             return Ok(response);
         }
 
         // POST: api/products
+
         [HttpPost]
         public async Task<IActionResult> InsertProducto(
             [FromBody] GuardarProductoDto productoDto)
         {
-            var resultado = await _validator.ValidateAsync(productoDto);
-
-            if (!resultado.IsValid)
+            var resultado = await _productoService.CrearProductoAsync(productoDto);
+            var error = ResponderError(resultado);
+            if (error != null)
             {
-                return BadRequest(new
-                {
-                    message = "Error de validacion.",
-                    errors = resultado.Errors.Select(e => new
-                    {
-                        field = e.PropertyName,
-                        error = e.ErrorMessage
-                    })
-                });
+                return error;
             }
-
-            var productoExistente = await _productoRepository
-                .GetProductoByCodigoAsync(productoDto.Codigo);
-
-            if (productoExistente != null)
-            {
-                return Conflict(new
-                {
-                    message = "El codigo del producto ya existe."
-                });
-            }
-
-            var producto = _mapper.Map<Producto>(productoDto);
-
-            producto.Activo = true;
-
-            try
-            {
-                await _productoRepository.InsertProducto(producto);
-            }
-            catch (DbUpdateException ex)
-                when (ex.InnerException is MySqlException { Number: 1062 })
-            {
-                return Conflict(new
-                {
-                    message = "El codigo del producto ya existe."
-                });
-            }
-
-            var resultadoDto = _mapper.Map<ProductoDto>(producto);
-
-            var response = new ApiResponse<ProductoDto>(resultadoDto);
-
+            var response = new ApiResponse<ProductoDto>(resultado.Data!);
             return CreatedAtAction(
                 nameof(GetProductoById),
-                new { id = producto.Id },
+                new { id = resultado.Data!.Id },
                 response);
         }
 
+
         // PUT: api/products/5
+
         [HttpPut("{id:int}")]
-        public async Task<IActionResult> UpdateProducto(int id, [FromBody] GuardarProductoDto productoDto)
+        public async Task<IActionResult> UpdateProducto(
+            int id,
+            [FromBody] GuardarProductoDto productoDto)
         {
-            var resultado = await _validator.ValidateAsync(productoDto);
+            var resultado = await _productoService
+                .ActualizarProductoAsync(id, productoDto);
 
-            if (!resultado.IsValid)
+            var error = ResponderError(resultado);
+
+            if (error != null)
             {
-                return BadRequest(new
-                {
-                    message = "Error de validacion.",
-                    errors = resultado.Errors.Select(e => new
-                    {
-                        field = e.PropertyName,
-                        error = e.ErrorMessage
-                    })
-                });
+                return error;
             }
 
-            var producto = await _productoRepository
-                .GetProductoParaActualizarAsync(id);
+            var response = new ApiResponse<ProductoDto>(resultado.Data!);
 
-            if (producto == null)
-            {
-                return NotFound(new
-                {
-                    message = "Producto no encontrado."
-                });
-            }
-
-            var productoConCodigo = await _productoRepository
-                .GetProductoByCodigoAsync(productoDto.Codigo);
-
-            if (productoConCodigo != null &&
-                productoConCodigo.Id != id)
-            {
-                return Conflict(new
-                {
-                    message = "El codigo pertenece a otro producto."
-                });
-            }
-
-            _mapper.Map(productoDto, producto);
-
-            try
-            {
-                await _productoRepository.UpdateProducto(producto);
-            }
-            catch (DbUpdateException ex)
-                when (ex.InnerException is MySqlException { Number: 1062 })
-            {
-                return Conflict(new
-                {
-                    message = "El codigo pertenece a otro producto."
-                });
-            }
-
-            var productoActualizado = await _productoRepository.GetProductoByIdAsync(id);
-
-            var resultadoDto = _mapper.Map<ProductoDto>(productoActualizado);
-            var response = new ApiResponse<ProductoDto>(resultadoDto);
             return Ok(response);
         }
+
 
         // PATCH: api/products/5/status
         [HttpPatch("{id:int}/status")]
         public async Task<IActionResult> CambiarEstadoProducto(int id, [FromBody] CambiarEstadoProductoDto estadoDto)
         {
-            var producto = await _productoRepository.GetProductoParaActualizarAsync(id);
-
-            if (producto == null)
+            var resultado = await _productoService.CambiarEstadoProductoAsync(id, estadoDto);
+            var error = ResponderError(resultado);
+            if (error != null)
             {
-                return NotFound(new
-                {
-                    message = "Producto no encontrado."
-                });
+                return error;
             }
-
-            producto.Activo = estadoDto.Activo;
-
-            await _productoRepository.UpdateProducto(producto);
-
             var response = new ApiResponse<object>(new
             {
                 message = "Estado actualizado correctamente.",
-                id = producto.Id,
-                activo = producto.Activo
+                id = id,
+                activo = resultado.Data
             });
-
             return Ok(response);
         }
 

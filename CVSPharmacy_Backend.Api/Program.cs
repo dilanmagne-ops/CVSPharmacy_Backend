@@ -4,6 +4,7 @@ using CVSPharmacy_Backend.Infraestructure.Data;
 using CVSPharmacy_Backend.Infraestructure.Repositories;
 using Microsoft.EntityFrameworkCore;
 using CVSPharmacy_Backend.Services.Validators;
+using CVSPharmacy_Backend.Services;
 namespace CVSPharmacy_Backend
 {
     public class Program
@@ -20,6 +21,8 @@ namespace CVSPharmacy_Backend
             // Add services to the container.
             #region Inyeccion de Dependencias
             builder.Services.AddScoped<IProductoRepository, ProductoRepository>();
+            builder.Services.AddScoped<IProductoService, ProductoService>();
+            builder.Services.AddScoped<GuardarProductoDtoValidator>();
             #endregion
             #region Configurar AutoMapper
             builder.Services.AddAutoMapper(typeof(ProductoProfile).Assembly);
