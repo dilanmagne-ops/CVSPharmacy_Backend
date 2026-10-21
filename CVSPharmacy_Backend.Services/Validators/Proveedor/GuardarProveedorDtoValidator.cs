@@ -1,7 +1,7 @@
 using CVSPharmacy_Backend.Core.Dtos;
 using FluentValidation;
 
-namespace CVSPharmacy_Backend.Services.Validators;
+namespace CVSPharmacy_Backend.Services.Validators.Proveedor;
 
 public sealed class GuardarProveedorDtoValidator : AbstractValidator<GuardarProveedorDto>
 {

@@ -1,7 +1,7 @@
 using CVSPharmacy_Backend.Api.Response;
 using CVSPharmacy_Backend.Core.Dtos;
 using CVSPharmacy_Backend.Core.Interfaces;
-using CVSPharmacy_Backend.Services.Validators;
+using CVSPharmacy_Backend.Services.Validators.Proveedor;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CVSPharmacy_Backend.Api.Controllers;
