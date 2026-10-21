@@ -1,7 +1,7 @@
 ﻿using FluentValidation;
-using CVSPharmacy_Backend.Core.Dtos;
+using CVSPharmacy_Backend.Core.Dtos.Producto;
 
-namespace CVSPharmacy_Backend.Services.Validators
+namespace CVSPharmacy_Backend.Services.Validators.Producto
 {
     public class GuardarProductoDtoValidator : AbstractValidator<GuardarProductoDto>
     {

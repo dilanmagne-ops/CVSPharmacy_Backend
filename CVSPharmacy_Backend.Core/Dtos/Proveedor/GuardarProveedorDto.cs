@@ -1,4 +1,4 @@
-namespace CVSPharmacy_Backend.Core.Dtos;
+namespace CVSPharmacy_Backend.Core.Dtos.Proveedor;
 
 public sealed class GuardarProveedorDto
 {

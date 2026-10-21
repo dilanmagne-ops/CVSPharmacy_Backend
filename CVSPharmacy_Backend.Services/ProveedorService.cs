@@ -1,5 +1,5 @@
 using AutoMapper;
-using CVSPharmacy_Backend.Core.Dtos;
+using CVSPharmacy_Backend.Core.Dtos.Proveedor;
 using CVSPharmacy_Backend.Core.Entities;
 using CVSPharmacy_Backend.Core.Interfaces;
 
@@ -65,7 +65,7 @@ public sealed class ProveedorService : IProveedorService
         if (proveedor is null)
             return null;
 
-        proveedor.Activo = estadoDto.Activo;
+        proveedor.Activo = estadoDto.Activo!.Value;
         await _proveedorRepository.SaveAsync();
         return _mapper.Map<ProveedorDto>(proveedor);
     }

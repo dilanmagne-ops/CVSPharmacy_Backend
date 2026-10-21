@@ -1,14 +1,14 @@
 ﻿using AutoMapper;
 using CVSPharmacy_Backend.Core.Entities;
-using CVSPharmacy_Backend.Core.Dtos;
 using CVSPharmacy_Backend.Core.Interfaces;
-using CVSPharmacy_Backend.Services.Validators;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MySqlConnector;
 using CVSPharmacy_Backend.Api.Response;
 using CVSPharmacy_Backend.Core.Results;
+using CVSPharmacy_Backend.Services.Validators.Producto;
+using CVSPharmacy_Backend.Core.Dtos.Producto;
 
 namespace CVSPharmacy_Backend.Api.Controllers
 {
@@ -51,7 +51,6 @@ namespace CVSPharmacy_Backend.Api.Controllers
                     return null;
             }
         }
-
         public ProductoController(
             IProductoRepository productoRepository,
             IProductoService productoService,
@@ -156,8 +155,7 @@ namespace CVSPharmacy_Backend.Api.Controllers
         // POST: api/products
 
         [HttpPost]
-        public async Task<IActionResult> InsertProducto(
-            [FromBody] GuardarProductoDto productoDto)
+        public async Task<IActionResult> InsertProducto([FromBody] GuardarProductoDto productoDto)
         {
             var resultado = await _productoService.CrearProductoAsync(productoDto);
             var error = ResponderError(resultado);

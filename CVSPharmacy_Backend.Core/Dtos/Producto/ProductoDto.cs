@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace CVSPharmacy_Backend.Core.Dtos
+namespace CVSPharmacy_Backend.Core.Dtos.Producto
 {
     //GET — Información del producto, incluyendo stock disponible y stock crítico.
     public class ProductoDto

@@ -3,8 +3,9 @@ using CVSPharmacy_Backend.Core.Interfaces;
 using CVSPharmacy_Backend.Infraestructure.Data;
 using CVSPharmacy_Backend.Infraestructure.Repositories;
 using Microsoft.EntityFrameworkCore;
-using CVSPharmacy_Backend.Services.Validators;
 using CVSPharmacy_Backend.Services;
+using CVSPharmacy_Backend.Services.Validators.Producto;
+using CVSPharmacy_Backend.Services.Validators.Proveedor;
 namespace CVSPharmacy_Backend
 {
     public class Program
@@ -31,6 +32,8 @@ namespace CVSPharmacy_Backend
             #region Registrar Validadores
             builder.Services.AddScoped<GuardarProductoDtoValidator>();
             builder.Services.AddScoped<GuardarProveedorDtoValidator>();
+            builder.Services.AddScoped<CambiarEstadoProductoDtoValidator>();
+            builder.Services.AddScoped<CambiarEstadoProveedorDtoValidator>();
             #endregion
             builder.Services.AddControllers();
             // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi

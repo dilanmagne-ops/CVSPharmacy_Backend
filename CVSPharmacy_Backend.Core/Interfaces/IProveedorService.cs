@@ -1,4 +1,4 @@
-using CVSPharmacy_Backend.Core.Dtos;
+using CVSPharmacy_Backend.Core.Dtos.Proveedor;
 
 namespace CVSPharmacy_Backend.Core.Interfaces;
 

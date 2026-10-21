@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace CVSPharmacy_Backend.Core.Dtos
+namespace CVSPharmacy_Backend.Core.Dtos.Producto
 {
     //POST y PUT — Datos para registrar o actualizar productos.
     public class GuardarProductoDto

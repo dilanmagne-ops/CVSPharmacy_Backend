@@ -1,5 +1,5 @@
 ﻿using AutoMapper;
-using CVSPharmacy_Backend.Core.Dtos;
+using CVSPharmacy_Backend.Core.Dtos.Producto;
 using CVSPharmacy_Backend.Core.Entities;
 
 namespace CVSPharmacy_Backend.Infraestructure.Mappings

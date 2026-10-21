@@ -1,7 +1,7 @@
 using CVSPharmacy_Backend.Api.Response;
-using CVSPharmacy_Backend.Core.Dtos;
+using CVSPharmacy_Backend.Core.Dtos.Proveedor;
 using CVSPharmacy_Backend.Core.Interfaces;
-using CVSPharmacy_Backend.Services.Validators;
+using CVSPharmacy_Backend.Services.Validators.Proveedor;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CVSPharmacy_Backend.Api.Controllers;
@@ -12,11 +12,13 @@ public sealed class ProveedorController : ControllerBase
 {
     private readonly IProveedorService _proveedorService;
     private readonly GuardarProveedorDtoValidator _validator;
+    private readonly CambiarEstadoProveedorDtoValidator _estadoValidator;
 
-    public ProveedorController(IProveedorService proveedorService, GuardarProveedorDtoValidator validator)
+    public ProveedorController(IProveedorService proveedorService, GuardarProveedorDtoValidator validator, CambiarEstadoProveedorDtoValidator estadoValidator)
     {
         _proveedorService = proveedorService;
         _validator = validator;
+        _estadoValidator = estadoValidator;
     }
 
     [HttpGet]
@@ -93,6 +95,18 @@ public sealed class ProveedorController : ControllerBase
     [HttpPatch("{id:int}/status")]
     public async Task<IActionResult> ChangeStatus(int id, [FromBody] CambiarEstadoProveedorDto estadoDto)
     {
+        var validation = await _estadoValidator.ValidateAsync(estadoDto);
+        if (!validation.IsValid)
+            return BadRequest(new
+            {
+                message = "Error de validación.",
+                errors = validation.Errors.Select(error => new
+                {
+                    field = error.PropertyName,
+                    error = error.ErrorMessage
+                })
+            });
+
         var proveedor = await _proveedorService.ChangeStatusAsync(id, estadoDto);
         return proveedor is null
             ? NotFound(new { message = "Proveedor no encontrado." })

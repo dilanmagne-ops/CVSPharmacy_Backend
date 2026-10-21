@@ -1,10 +1,10 @@
 ﻿using AutoMapper;
-using CVSPharmacy_Backend.Core.Dtos;
 using CVSPharmacy_Backend.Core.Entities;
 using CVSPharmacy_Backend.Core.Exceptions;
 using CVSPharmacy_Backend.Core.Results;
-using CVSPharmacy_Backend.Services.Validators;
 using CVSPharmacy_Backend.Core.Interfaces;
+using CVSPharmacy_Backend.Services.Validators.Producto;
+using CVSPharmacy_Backend.Core.Dtos.Producto;
 
 namespace CVSPharmacy_Backend.Services
 {
@@ -13,12 +13,14 @@ namespace CVSPharmacy_Backend.Services
         private readonly IProductoRepository _productoRepository;
         private readonly IMapper _mapper;
         private readonly GuardarProductoDtoValidator _validator;
+        private readonly CambiarEstadoProductoDtoValidator _estadoValidator;
 
-        public ProductoService(IProductoRepository productoRepository, IMapper mapper, GuardarProductoDtoValidator validator)
+        public ProductoService(IProductoRepository productoRepository, IMapper mapper, GuardarProductoDtoValidator validator, CambiarEstadoProductoDtoValidator estadoValidator)
         {
             _productoRepository = productoRepository;
             _mapper = mapper;
             _validator = validator;
+            _estadoValidator = estadoValidator;
         }
         public async Task<IEnumerable<ProductoDto>> GetAllProductosAsync(string? q, bool? active)
         {
@@ -178,6 +180,21 @@ namespace CVSPharmacy_Backend.Services
         //PATCH
         public async Task<ResultadoServicio<bool>> CambiarEstadoProductoAsync(int id, CambiarEstadoProductoDto estadoDto)
         {
+            var validacion = await _estadoValidator.ValidateAsync(estadoDto);
+            if (!validacion.IsValid)
+            {
+                return new ResultadoServicio<bool>
+                {
+                    Estado = EstadoResultado.Validacion,
+                    Mensaje = "Error de validacion.",
+                    Errores = validacion.Errors.Select(error => new ErrorCampo
+                    {
+                        Campo = error.PropertyName,
+                        Mensaje = error.ErrorMessage
+                    }).ToList()
+                };
+            }
+
             var producto = await _productoRepository
                 .GetProductoParaActualizarAsync(id);
 
@@ -190,7 +207,7 @@ namespace CVSPharmacy_Backend.Services
                 };
             }
 
-            producto.Activo = estadoDto.Activo;
+            producto.Activo = estadoDto.Activo!.Value;
 
             await _productoRepository.UpdateProducto(producto);
 
