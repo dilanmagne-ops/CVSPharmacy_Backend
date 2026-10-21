@@ -21,6 +21,7 @@ namespace CVSPharmacy_Backend
             // Add services to the container.
             #region Inyeccion de Dependencias
             builder.Services.AddScoped<IProductoRepository, ProductoRepository>();
+            builder.Services.AddScoped<IProductoService, ProductoService>();
             builder.Services.AddScoped<IProveedorRepository, ProveedorRepository>();
             builder.Services.AddScoped<IProveedorService, CVSPharmacy_Backend.Services.ProveedorService>();
             #endregion
