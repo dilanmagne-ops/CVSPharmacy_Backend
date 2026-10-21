@@ -6,7 +6,7 @@ using CVSPharmacy_Backend.Core.Interfaces;
 using CVSPharmacy_Backend.Services.Validators.Producto;
 using CVSPharmacy_Backend.Core.Dtos.Producto;
 
-namespace CVSPharmacy_Backend.Services
+namespace CVSPharmacy_Backend.Services.Service
 {
     public class ProductoService : IProductoService
     {
