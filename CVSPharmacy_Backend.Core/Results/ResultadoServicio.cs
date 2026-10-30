@@ -5,7 +5,8 @@
         Exito,
         Validacion,
         NoEncontrado,
-        Conflicto
+        Conflicto,
+        NoProcesable
     }
 
     public class ErrorCampo
