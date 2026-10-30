@@ -1,12 +1,10 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace CVSPharmacy_Backend.Core.Entities;
 
-public partial class SolicitudesBaja
+public partial class SolicitudesBaja : BaseEntity
 {
-    public int Id { get; set; }
-
     public int LoteId { get; set; }
 
     public int Cantidad { get; set; }

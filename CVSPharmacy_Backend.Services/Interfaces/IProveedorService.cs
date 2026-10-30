@@ -1,6 +1,6 @@
 using CVSPharmacy_Backend.Core.Dtos.Proveedor;
 
-namespace CVSPharmacy_Backend.Core.Interfaces;
+namespace CVSPharmacy_Backend.Services.Interfaces;
 
 public interface IProveedorService
 {

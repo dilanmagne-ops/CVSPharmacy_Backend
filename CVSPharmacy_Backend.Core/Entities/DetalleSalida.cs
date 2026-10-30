@@ -1,12 +1,10 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace CVSPharmacy_Backend.Core.Entities;
 
-public partial class DetalleSalida
+public partial class DetalleSalida : BaseEntity
 {
-    public int Id { get; set; }
-
     public int SalidaId { get; set; }
 
     public int LoteId { get; set; }

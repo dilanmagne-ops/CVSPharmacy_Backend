@@ -1,0 +1,557 @@
+{
+  "info": {
+    "name": "CVSPharmacy - Integración CU03 CU04 CU05 CU06",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Ejecutar en orden con API Development y usuario Administrador local configurado. Crea datos de práctica; no elimina datos existentes."
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://localhost:7257"
+    },
+    {
+      "key": "run_id",
+      "value": ""
+    },
+    {
+      "key": "producto_id",
+      "value": ""
+    },
+    {
+      "key": "proveedor_id",
+      "value": ""
+    },
+    {
+      "key": "orden_id",
+      "value": ""
+    },
+    {
+      "key": "recepcion_id",
+      "value": ""
+    },
+    {
+      "key": "future_date",
+      "value": ""
+    },
+    {
+      "key": "expired_date",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "01 Crear producto",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/products",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"codigo\": \"PR-{{run_id}}\",\n  \"nombre\": \"Producto de práctica CU06\",\n  \"presentacion\": \"Caja\",\n  \"unidadMedida\": \"Unidad\",\n  \"precioVenta\": 10,\n  \"stockMinimo\": 40\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.collectionVariables.set(\"run_id\", Date.now().toString());",
+              "const future = new Date(); future.setFullYear(future.getFullYear() + 1);",
+              "const expired = new Date(); expired.setDate(expired.getDate() - 1);",
+              "pm.collectionVariables.set(\"future_date\", future.toISOString().slice(0, 10));",
+              "pm.collectionVariables.set(\"expired_date\", expired.toISOString().slice(0, 10));"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 201\", function () { pm.response.to.have.status(201); });",
+              "if (pm.response.code === 201) pm.collectionVariables.set(\"producto_id\", pm.response.json().data.id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 Crear proveedor",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/suppliers",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nit\": \"{{run_id}}\",\n  \"razonSocial\": \"Proveedor de práctica\",\n  \"email\": \"practica@example.com\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 201\", function () { pm.response.to.have.status(201); });",
+              "if (pm.response.code === 201) pm.collectionVariables.set(\"proveedor_id\", pm.response.json().data.id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 Crear orden de 50 unidades",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/purchase-orders",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"proveedorId\": {{proveedor_id}},\n  \"items\": [\n    {\n      \"productoId\": {{producto_id}},\n      \"cantidadSolicitada\": 50,\n      \"precioUnitario\": 5\n    }\n  ]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 201\", function () { pm.response.to.have.status(201); });",
+              "if (pm.response.code === 201) pm.collectionVariables.set(\"orden_id\", pm.response.json().data.id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 Editar orden Borrador",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/purchase-orders/{{orden_id}}",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"proveedorId\": {{proveedor_id}},\n  \"items\": [\n    {\n      \"productoId\": {{producto_id}},\n      \"cantidadSolicitada\": 50,\n      \"precioUnitario\": 5\n    }\n  ]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "05 Emitir orden",
+      "request": {
+        "method": "PATCH",
+        "header": [],
+        "url": "{{base_url}}/api/purchase-orders/{{orden_id}}/issue"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "06 No editar orden Emitida",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/purchase-orders/{{orden_id}}",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"proveedorId\": {{proveedor_id}},\n  \"items\": [\n    {\n      \"productoId\": {{producto_id}},\n      \"cantidadSolicitada\": 50,\n      \"precioUnitario\": 5\n    }\n  ]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 409\", function () { pm.response.to.have.status(409); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "07 Recibir primeras 20 unidades",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/purchase-orders/{{orden_id}}/receptions",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nroRemision\": \"REM-{{run_id}}\",\n  \"items\": [\n    {\n      \"productoId\": {{producto_id}},\n      \"cantidad\": 20,\n      \"numeroLote\": \"A-{{run_id}}\",\n      \"fechaVencimiento\": \"{{future_date}}\"\n    }\n  ]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 201\", function () { pm.response.to.have.status(201); });",
+              "if (pm.response.code === 201) pm.collectionVariables.set(\"recepcion_id\", pm.response.json().data.id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "08 Consultar orden Recibida parcial",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{base_url}}/api/purchase-orders/{{orden_id}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "09 Consultar recepciones",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{base_url}}/api/purchase-orders/{{orden_id}}/receptions"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "10 Rechazar exceso de 31 (pendiente 30)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/purchase-orders/{{orden_id}}/receptions",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nroRemision\": \"REM-{{run_id}}\",\n  \"items\": [\n    {\n      \"productoId\": {{producto_id}},\n      \"cantidad\": 31,\n      \"numeroLote\": \"EXCESO-{{run_id}}\",\n      \"fechaVencimiento\": \"{{future_date}}\"\n    }\n  ]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 422\", function () { pm.response.to.have.status(422); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "11 Rechazar lote repetido",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/purchase-orders/{{orden_id}}/receptions",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nroRemision\": \"REM-{{run_id}}\",\n  \"items\": [\n    {\n      \"productoId\": {{producto_id}},\n      \"cantidad\": 1,\n      \"numeroLote\": \"A-{{run_id}}\",\n      \"fechaVencimiento\": \"{{future_date}}\"\n    }\n  ]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 409\", function () { pm.response.to.have.status(409); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "12 Rechazar vencimiento pasado",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/purchase-orders/{{orden_id}}/receptions",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nroRemision\": \"REM-{{run_id}}\",\n  \"items\": [\n    {\n      \"productoId\": {{producto_id}},\n      \"cantidad\": 1,\n      \"numeroLote\": \"VENCIDO-{{run_id}}\",\n      \"fechaVencimiento\": \"{{expired_date}}\"\n    }\n  ]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 422\", function () { pm.response.to.have.status(422); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "13 No cancelar una orden parcial",
+      "request": {
+        "method": "PATCH",
+        "header": [],
+        "url": "{{base_url}}/api/purchase-orders/{{orden_id}}/cancel"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 409\", function () { pm.response.to.have.status(409); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "14 Recibir las 30 restantes",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/purchase-orders/{{orden_id}}/receptions",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nroRemision\": \"REM-{{run_id}}\",\n  \"items\": [\n    {\n      \"productoId\": {{producto_id}},\n      \"cantidad\": 30,\n      \"numeroLote\": \"B-{{run_id}}\",\n      \"fechaVencimiento\": \"{{future_date}}\"\n    }\n  ]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 201\", function () { pm.response.to.have.status(201); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "15 Consultar orden Recibida",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{base_url}}/api/purchase-orders/{{orden_id}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "16 Comprobar stock 50 en producto",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{base_url}}/api/products/{{producto_id}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+              "pm.test(\"Stock disponible 50\", function () { pm.expect(pm.response.json().data.stockDisponible).to.eql(50); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "17 No recibir de nuevo orden completa",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/purchase-orders/{{orden_id}}/receptions",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nroRemision\": \"REM-{{run_id}}\",\n  \"items\": [\n    {\n      \"productoId\": {{producto_id}},\n      \"cantidad\": 1,\n      \"numeroLote\": \"C-{{run_id}}\",\n      \"fechaVencimiento\": \"{{future_date}}\"\n    }\n  ]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 409\", function () { pm.response.to.have.status(409); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "18 Consultar catálogo de stock crítico",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{base_url}}/api/products/low-stock"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -12,7 +12,7 @@ namespace CVSPharmacy_Backend.Core.Dtos.Producto
         public string? PrincipioActivo { get; set; }
         public string Presentacion { get; set; } = null!;
         public string UnidadMedida { get; set; } = null!;
-        public decimal PrecioVenta { get; set; }
-        public int StockMinimo { get; set; }
+        public decimal? PrecioVenta { get; set; }
+        public int? StockMinimo { get; set; }
     }
 }

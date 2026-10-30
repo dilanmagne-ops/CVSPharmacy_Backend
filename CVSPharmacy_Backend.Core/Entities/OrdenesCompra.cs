@@ -1,12 +1,10 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace CVSPharmacy_Backend.Core.Entities;
 
-public partial class OrdenesCompra
+public partial class OrdenesCompra : BaseEntity
 {
-    public int Id { get; set; }
-
     public string Numero { get; set; } = null!;
 
     public int ProveedorId { get; set; }
