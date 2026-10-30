@@ -1,7 +1,7 @@
 ﻿using AutoMapper;
+using System.Net;
 using CVSPharmacy_Backend.Core.Entities;
 using CVSPharmacy_Backend.Core.Exceptions;
-using CVSPharmacy_Backend.Core.Results;
 using CVSPharmacy_Backend.Core.Interfaces;
 using CVSPharmacy_Backend.Services.Validators.Producto;
 using CVSPharmacy_Backend.Core.Dtos.Producto;
@@ -24,7 +24,7 @@ namespace CVSPharmacy_Backend.Services.Service
         }
         public async Task<IEnumerable<ProductoDto>> GetAllProductosAsync(string? q, bool? active)
         {
-            var productos = await _productoRepository.GetAllProductosAsync();
+            var productos = await _productoRepository.GetAll();
             if (!string.IsNullOrWhiteSpace(q))
             {
                 productos = productos.Where(p => p.Codigo.Contains(q, StringComparison.OrdinalIgnoreCase) 
@@ -40,9 +40,11 @@ namespace CVSPharmacy_Backend.Services.Service
 
         public async Task<ProductoDto?> GetProductoByIdAsync(int id)
         {
-            var producto = await _productoRepository.GetProductoByIdAsync(id);
+            var producto = await _productoRepository.GetById(id);
             if (producto == null)
-                return null;
+            {
+                throw new BusinessException("Producto no encontrado.",HttpStatusCode.NotFound);
+            }
 
             return _mapper.Map<ProductoDto>(producto);
         }
@@ -52,79 +54,50 @@ namespace CVSPharmacy_Backend.Services.Service
             var productos = await _productoRepository.GetProductosStockCriticoAsync();
             return _mapper.Map<IEnumerable<ProductoDto>>(productos);
         }
-        private async Task<ResultadoServicio<ProductoDto>?> ValidarProductoAsync(GuardarProductoDto productoDto)
+        private async Task ValidarProductoAsync(GuardarProductoDto productoDto)
         {
             var resultado = await _validator.ValidateAsync(productoDto);
 
-            if (resultado.IsValid)
+            if (!resultado.IsValid)
             {
-                return null;
+                throw new BusinessException(
+                    "Error de validacion.",
+                    HttpStatusCode.BadRequest,
+                    resultado.Errors.Select(error => new{field = error.PropertyName,error = error.ErrorMessage}).ToList());
             }
-
-            return new ResultadoServicio<ProductoDto>
-            {
-                Estado = EstadoResultado.Validacion,
-                Mensaje = "Error de validacion.",
-                Errores = resultado.Errors.Select(e => new ErrorCampo
-                {
-                    Campo = e.PropertyName,
-                    Mensaje = e.ErrorMessage
-                }).ToList()
-            };
         }
-        public async Task<ResultadoServicio<ProductoDto>> CrearProductoAsync(GuardarProductoDto productoDto)
+        public async Task<ProductoDto> CrearProductoAsync(GuardarProductoDto productoDto)
         {
             // Validar los datos
-            var validacion = await ValidarProductoAsync(productoDto);
-            if (validacion != null)
-            {
-                return validacion;
-            }
+            await ValidarProductoAsync(productoDto);
             // Verificar codigo duplicado
             var productoExistente = await _productoRepository.GetProductoByCodigoAsync(productoDto.Codigo);
             if (productoExistente != null)
             {
-                return new ResultadoServicio<ProductoDto>
-                {
-                    Estado = EstadoResultado.Conflicto,
-                    Mensaje = "El codigo del producto ya existe."
-                };
+                throw new BusinessException("El codigo del producto ya existe.",HttpStatusCode.Conflict);
             }
             // Convertir DTO a entidad
             var producto = _mapper.Map<Producto>(productoDto);
             producto.Activo = true;
             try
             {
-                await _productoRepository.InsertProducto(producto);
+                await _productoRepository.Add(producto);
             }
             catch (CodigoProductoDuplicadoException)
             {
-                return new ResultadoServicio<ProductoDto>
-                {
-                    Estado = EstadoResultado.Conflicto,
-                    Mensaje = "El codigo del producto ya existe."
-                };
+                throw new BusinessException("El codigo del producto ya existe.", HttpStatusCode.Conflict);
             }
 
             // Consultar el producto recien registrado
-            var productoGuardado = await _productoRepository.GetProductoByIdAsync(producto.Id);
+            var productoGuardado = await _productoRepository.GetById(producto.Id);
             var resultadoDto = _mapper.Map<ProductoDto>(productoGuardado ?? producto);
-            return new ResultadoServicio<ProductoDto>
-            {
-                Estado = EstadoResultado.Exito,
-                Data = resultadoDto
-            };
+            return resultadoDto;
         }
         //PUT
-        public async Task<ResultadoServicio<ProductoDto>> ActualizarProductoAsync(int id, GuardarProductoDto productoDto)
+        public async Task<ProductoDto> ActualizarProductoAsync(int id, GuardarProductoDto productoDto)
         {
             // Validar los datos
-            var validacion = await ValidarProductoAsync(productoDto);
-
-            if (validacion != null)
-            {
-                return validacion;
-            }
+            await ValidarProductoAsync(productoDto);
 
             // Buscar producto existente
             var producto = await _productoRepository
@@ -132,11 +105,7 @@ namespace CVSPharmacy_Backend.Services.Service
 
             if (producto == null)
             {
-                return new ResultadoServicio<ProductoDto>
-                {
-                    Estado = EstadoResultado.NoEncontrado,
-                    Mensaje = "Producto no encontrado."
-                };
+                throw new BusinessException("Producto no encontrado.", HttpStatusCode.NotFound);
             }
 
             // Verificar que el codigo no pertenezca a otro producto
@@ -145,54 +114,38 @@ namespace CVSPharmacy_Backend.Services.Service
 
             if (productoConCodigo != null && productoConCodigo.Id != id)
             {
-                return new ResultadoServicio<ProductoDto>
-                {
-                    Estado = EstadoResultado.Conflicto,
-                    Mensaje = "El codigo pertenece a otro producto."
-                };
+                throw new BusinessException("El codigo pertenece a otro producto.", HttpStatusCode.Conflict);
             }
-
+                                                                                                                                                                                                                                            
             // Actualizar los campos permitidos
             _mapper.Map(productoDto, producto);
 
             try
             {
-                await _productoRepository.UpdateProducto(producto);
+                await _productoRepository.Update(producto);
             }
             catch (CodigoProductoDuplicadoException)
             {
-                return new ResultadoServicio<ProductoDto>
-                {
-                    Estado = EstadoResultado.Conflicto,
-                    Mensaje = "El codigo pertenece a otro producto."
-                };
+                throw new BusinessException("El codigo pertenece a otro producto.", HttpStatusCode.Conflict);
             }
 
             var productoActualizado = await _productoRepository
-                .GetProductoByIdAsync(id);
+                .GetById(id);
 
-            return new ResultadoServicio<ProductoDto>
-            {
-                Estado = EstadoResultado.Exito,
-                Data = _mapper.Map<ProductoDto>(productoActualizado!)
-            };
+            return _mapper.Map<ProductoDto>(productoActualizado!);
         }
         //PATCH
-        public async Task<ResultadoServicio<bool>> CambiarEstadoProductoAsync(int id, CambiarEstadoProductoDto estadoDto)
+        public async Task<bool> CambiarEstadoProductoAsync(int id, CambiarEstadoProductoDto estadoDto)
         {
             var validacion = await _estadoValidator.ValidateAsync(estadoDto);
             if (!validacion.IsValid)
             {
-                return new ResultadoServicio<bool>
-                {
-                    Estado = EstadoResultado.Validacion,
-                    Mensaje = "Error de validacion.",
-                    Errores = validacion.Errors.Select(error => new ErrorCampo
+                throw new BusinessException("Error de validacion.",HttpStatusCode.BadRequest,
+                    validacion.Errors.Select(error => new
                     {
-                        Campo = error.PropertyName,
-                        Mensaje = error.ErrorMessage
-                    }).ToList()
-                };
+                        field = error.PropertyName,
+                        error = error.ErrorMessage
+                    }).ToList());
             }
 
             var producto = await _productoRepository
@@ -200,22 +153,14 @@ namespace CVSPharmacy_Backend.Services.Service
 
             if (producto == null)
             {
-                return new ResultadoServicio<bool>
-                {
-                    Estado = EstadoResultado.NoEncontrado,
-                    Mensaje = "Producto no encontrado."
-                };
+                throw new BusinessException("Producto no encontrado.", HttpStatusCode.NotFound);
             }
 
             producto.Activo = estadoDto.Activo!.Value;
 
-            await _productoRepository.UpdateProducto(producto);
+            await _productoRepository.Update(producto);
 
-            return new ResultadoServicio<bool>
-            {
-                Estado = EstadoResultado.Exito,
-                Data = producto.Activo == true
-            };
+            return producto.Activo == true;
         }
 
 

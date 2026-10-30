@@ -34,11 +34,15 @@ namespace CVSPharmacy_Backend.Services.Validators.Producto
 
             // Validar precio de venta
             RuleFor(x => x.PrecioVenta)
+                .Cascade(CascadeMode.Stop)
+                .NotNull().WithMessage("El precio de venta es obligatorio.")
                 .GreaterThanOrEqualTo(0).WithMessage("El precio de venta no puede ser negativo.")
                 .PrecisionScale(10, 2, true).WithMessage("El precio debe tener maximo 8 digitos enteros y 2 decimales.");
 
             // Validar stock minimo
             RuleFor(x => x.StockMinimo)
+                .Cascade(CascadeMode.Stop)
+                .NotNull().WithMessage("El stock minimo es obligatorio.")
                 .GreaterThanOrEqualTo(0).WithMessage("El stock minimo no puede ser negativo.");
         }
     }

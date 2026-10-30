@@ -3,9 +3,8 @@ using System.Collections.Generic;
 
 namespace CVSPharmacy_Backend.Core.Entities;
 
-public partial class Producto
+public partial class Producto : BaseEntity
 {
-    public int Id { get; set; }
 
     public string Codigo { get; set; } = null!;
 

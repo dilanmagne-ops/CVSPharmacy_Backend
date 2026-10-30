@@ -7,33 +7,29 @@ using MySqlConnector;
 
 namespace CVSPharmacy_Backend.Infraestructure.Repositories
 {
-    public class ProductoRepository : IProductoRepository
+    public class ProductoRepository : BaseRepository<Producto>, IProductoRepository
     {
         private readonly FarmaciaDbContext _farmaciaDbContext;
 
-        public ProductoRepository(FarmaciaDbContext farmaciaDbContext)
+        public ProductoRepository(FarmaciaDbContext farmaciaDbContext) : base(farmaciaDbContext)
         {
             _farmaciaDbContext = farmaciaDbContext;
         }
 
-        public async Task<IEnumerable<Producto>> GetAllProductosAsync()
+        public override async Task<IEnumerable<Producto>> GetAll()
         {
-            var productos = await _farmaciaDbContext.Productos
+            return await _entities
                 .Include(p => p.Lotes)
                 .AsNoTracking()
                 .ToListAsync();
-
-            return productos;
         }
 
-        public async Task<Producto?> GetProductoByIdAsync(int id)
+        public override async Task<Producto?> GetById(int id)
         {
-            var producto = await _farmaciaDbContext.Productos
+            return await _entities
                 .Include(p => p.Lotes)
                 .AsNoTracking()
                 .FirstOrDefaultAsync(p => p.Id == id);
-
-            return producto;
         }
         public async Task<Producto?> GetProductoParaActualizarAsync(int id)
         {
@@ -51,28 +47,23 @@ namespace CVSPharmacy_Backend.Infraestructure.Repositories
             return producto;
         }
 
-        public async Task InsertProducto(Producto producto)
+        public override async Task Add(Producto producto)
         {
-            _farmaciaDbContext.Productos.Add(producto);
-
             try
             {
-                await _farmaciaDbContext.SaveChangesAsync();
+                await base.Add(producto);
             }
-            catch (DbUpdateException ex)
-                when (ex.InnerException is MySqlException { Number: 1062 })
+            catch (DbUpdateException ex) when (ex.InnerException is MySqlException { Number: 1062 })
             {
                 throw new CodigoProductoDuplicadoException(ex);
             }
         }
 
-        public async Task UpdateProducto(Producto producto)
+        public override async Task Update(Producto producto)
         {
-            _farmaciaDbContext.Productos.Update(producto);
-
             try
             {
-                await _farmaciaDbContext.SaveChangesAsync();
+                await base.Update(producto);
             }
             catch (DbUpdateException ex)
                 when (ex.InnerException is MySqlException { Number: 1062 })

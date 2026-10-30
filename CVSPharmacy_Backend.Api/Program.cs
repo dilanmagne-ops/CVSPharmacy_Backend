@@ -7,6 +7,7 @@ using CVSPharmacy_Backend.Services;
 using CVSPharmacy_Backend.Services.Validators.Producto;
 using CVSPharmacy_Backend.Services.Validators.Proveedor;
 using CVSPharmacy_Backend.Services.Service;
+using CVSPharmacy_Backend.Api.Filters;
 namespace CVSPharmacy_Backend
 {
     public class Program
@@ -22,6 +23,7 @@ namespace CVSPharmacy_Backend
             #endregion
             // Add services to the container.
             #region Inyeccion de Dependencias
+            builder.Services.AddScoped(typeof(IBaseRepository<>),typeof(BaseRepository<>));
             builder.Services.AddScoped<IProductoRepository, ProductoRepository>();
             builder.Services.AddScoped<IProductoService, ProductoService>();
             builder.Services.AddScoped<IProveedorRepository, ProveedorRepository>();
@@ -36,12 +38,15 @@ namespace CVSPharmacy_Backend
             builder.Services.AddScoped<CambiarEstadoProductoDtoValidator>();
             builder.Services.AddScoped<CambiarEstadoProveedorDtoValidator>();
             #endregion
-            builder.Services.AddControllers();
+            builder.Services.AddControllers().ConfigureApiBehaviorOptions(options =>
+            {
+                options.SuppressModelStateInvalidFilter = true;
+            });
             // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
             builder.Services.AddOpenApi();
 
             var app = builder.Build();
-
+            app.UseMiddleware<ExceptionHandlingMiddleware>();
             // Configure the HTTP request pipeline.
             if (app.Environment.IsDevelopment())
             {
@@ -51,7 +56,6 @@ namespace CVSPharmacy_Backend
             app.UseHttpsRedirection();
 
             app.UseAuthorization();
-
 
             app.MapControllers();
 

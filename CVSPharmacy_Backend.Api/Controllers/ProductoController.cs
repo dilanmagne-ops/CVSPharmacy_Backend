@@ -1,9 +1,7 @@
-﻿using CVSPharmacy_Backend.Core.Interfaces;
-using Microsoft.AspNetCore.Mvc;
-using CVSPharmacy_Backend.Api.Response;
-using CVSPharmacy_Backend.Core.Results;
+﻿using CVSPharmacy_Backend.Api.Response;
 using CVSPharmacy_Backend.Core.Dtos.Producto;
-
+using CVSPharmacy_Backend.Core.Interfaces;
+using Microsoft.AspNetCore.Mvc;
 namespace CVSPharmacy_Backend.Api.Controllers
 {
     [Route("api/products")]
@@ -15,39 +13,6 @@ namespace CVSPharmacy_Backend.Api.Controllers
         {
             _productoService = productoService;
         }
-
-        private IActionResult? ResponderError<T>(ResultadoServicio<T> resultado)
-        {
-            switch (resultado.Estado)
-            {
-                case EstadoResultado.Validacion:
-                    return BadRequest(new
-                    {
-                        message = resultado.Mensaje,
-                        errors = resultado.Errores.Select(e => new
-                        {
-                            field = e.Campo,
-                            error = e.Mensaje
-                        })
-                    });
-
-                case EstadoResultado.NoEncontrado:
-                    return NotFound(new
-                    {
-                        message = resultado.Mensaje
-                    });
-
-                case EstadoResultado.Conflicto:
-                    return Conflict(new
-                    {
-                        message = resultado.Mensaje
-                    });
-
-                default:
-                    return null;
-            }
-        }
-       
         #region DTO-AutoMapper - Endpoints oficiales CU-03
 
         // GET: api/products?q=paracetamol&active=true
@@ -64,13 +29,6 @@ namespace CVSPharmacy_Backend.Api.Controllers
         public async Task<IActionResult> GetProductoById(int id)
         {
             var productoDto = await _productoService.GetProductoByIdAsync(id);
-            if (productoDto == null)
-            {
-                return NotFound(new
-                {
-                    message = "Producto no encontrado."
-                });
-            }
             var response = new ApiResponse<ProductoDto>(productoDto);
             return Ok(response);
         }
@@ -89,17 +47,12 @@ namespace CVSPharmacy_Backend.Api.Controllers
         [HttpPost]
         public async Task<IActionResult> InsertProducto([FromBody] GuardarProductoDto productoDto)
         {
-            var resultado = await _productoService.CrearProductoAsync(productoDto);
-            var error = ResponderError(resultado);
-            if (error != null)
-            {
-                return error;
-            }
-            var response = new ApiResponse<ProductoDto>(resultado.Data!);
+            var producto = await _productoService.CrearProductoAsync(productoDto);
+            var response = new ApiResponse<ProductoDto>(producto);
             return CreatedAtAction(
-                nameof(GetProductoById),
-                new { id = resultado.Data!.Id },
-                response);
+              nameof(GetProductoById),
+              new { id = producto.Id },
+              response);
         }
 
 
@@ -110,17 +63,10 @@ namespace CVSPharmacy_Backend.Api.Controllers
             int id,
             [FromBody] GuardarProductoDto productoDto)
         {
-            var resultado = await _productoService
+            var producto = await _productoService
                 .ActualizarProductoAsync(id, productoDto);
 
-            var error = ResponderError(resultado);
-
-            if (error != null)
-            {
-                return error;
-            }
-
-            var response = new ApiResponse<ProductoDto>(resultado.Data!);
+            var response = new ApiResponse<ProductoDto>(producto);
 
             return Ok(response);
         }
@@ -130,18 +76,14 @@ namespace CVSPharmacy_Backend.Api.Controllers
         [HttpPatch("{id:int}/status")]
         public async Task<IActionResult> CambiarEstadoProducto(int id, [FromBody] CambiarEstadoProductoDto estadoDto)
         {
-            var resultado = await _productoService.CambiarEstadoProductoAsync(id, estadoDto);
-            var error = ResponderError(resultado);
-            if (error != null)
-            {
-                return error;
-            }
+            var activo = await _productoService.CambiarEstadoProductoAsync(id, estadoDto);
             var response = new ApiResponse<object>(new
             {
                 message = "Estado actualizado correctamente.",
                 id = id,
-                activo = resultado.Data
+                activo = activo
             });
+
             return Ok(response);
         }
 
