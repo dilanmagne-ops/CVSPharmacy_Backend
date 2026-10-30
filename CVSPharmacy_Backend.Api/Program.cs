@@ -3,10 +3,10 @@ using CVSPharmacy_Backend.Core.Interfaces;
 using CVSPharmacy_Backend.Infraestructure.Data;
 using CVSPharmacy_Backend.Infraestructure.Repositories;
 using Microsoft.EntityFrameworkCore;
-using CVSPharmacy_Backend.Services;
 using CVSPharmacy_Backend.Services.Validators.Producto;
 using CVSPharmacy_Backend.Services.Validators.Proveedor;
-using CVSPharmacy_Backend.Services.Service;
+using CVSPharmacy_Backend.Services.Services;
+using CVSPharmacy_Backend.Services.Interfaces;
 namespace CVSPharmacy_Backend
 {
     public class Program
@@ -22,10 +22,9 @@ namespace CVSPharmacy_Backend
             #endregion
             // Add services to the container.
             #region Inyeccion de Dependencias
-            builder.Services.AddScoped<IProductoRepository, ProductoRepository>();
+            builder.Services.AddScoped(typeof(IBaseRepository<>), typeof(BaseRepository<>));
             builder.Services.AddScoped<IProductoService, ProductoService>();
-            builder.Services.AddScoped<IProveedorRepository, ProveedorRepository>();
-            builder.Services.AddScoped<IProveedorService, CVSPharmacy_Backend.Services.ProveedorService>();
+            builder.Services.AddScoped<IProveedorService, ProveedorService>();
             #endregion
             #region Configurar AutoMapper
             builder.Services.AddAutoMapper(typeof(ProductoProfile).Assembly);

@@ -1,4 +1,5 @@
-﻿using AutoMapper;
+using CVSPharmacy_Backend.Services.Interfaces;
+using AutoMapper;
 using CVSPharmacy_Backend.Core.Entities;
 using CVSPharmacy_Backend.Core.Exceptions;
 using CVSPharmacy_Backend.Core.Results;
@@ -6,16 +7,16 @@ using CVSPharmacy_Backend.Core.Interfaces;
 using CVSPharmacy_Backend.Services.Validators.Producto;
 using CVSPharmacy_Backend.Core.Dtos.Producto;
 
-namespace CVSPharmacy_Backend.Services.Service
+namespace CVSPharmacy_Backend.Services.Services
 {
     public class ProductoService : IProductoService
     {
-        private readonly IProductoRepository _productoRepository;
+        private readonly IBaseRepository<Producto> _productoRepository;
         private readonly IMapper _mapper;
         private readonly GuardarProductoDtoValidator _validator;
         private readonly CambiarEstadoProductoDtoValidator _estadoValidator;
 
-        public ProductoService(IProductoRepository productoRepository, IMapper mapper, GuardarProductoDtoValidator validator, CambiarEstadoProductoDtoValidator estadoValidator)
+        public ProductoService(IBaseRepository<Producto> productoRepository, IMapper mapper, GuardarProductoDtoValidator validator, CambiarEstadoProductoDtoValidator estadoValidator)
         {
             _productoRepository = productoRepository;
             _mapper = mapper;
@@ -24,7 +25,7 @@ namespace CVSPharmacy_Backend.Services.Service
         }
         public async Task<IEnumerable<ProductoDto>> GetAllProductosAsync(string? q, bool? active)
         {
-            var productos = await _productoRepository.GetAllProductosAsync();
+            IEnumerable<Producto> productos = await _productoRepository.GetAllAsync(null, p => p.Lotes);
             if (!string.IsNullOrWhiteSpace(q))
             {
                 productos = productos.Where(p => p.Codigo.Contains(q, StringComparison.OrdinalIgnoreCase) 
@@ -40,7 +41,7 @@ namespace CVSPharmacy_Backend.Services.Service
 
         public async Task<ProductoDto?> GetProductoByIdAsync(int id)
         {
-            var producto = await _productoRepository.GetProductoByIdAsync(id);
+            var producto = await _productoRepository.GetByIdAsync(id, p => p.Lotes);
             if (producto == null)
                 return null;
 
@@ -49,7 +50,11 @@ namespace CVSPharmacy_Backend.Services.Service
 
         public async Task<IEnumerable<ProductoDto>> GetProductosStockCriticoAsync()
         {
-            var productos = await _productoRepository.GetProductosStockCriticoAsync();
+            var hoy = DateOnly.FromDateTime(DateTime.Today);
+            var productos = await _productoRepository.GetAllAsync(p =>
+                (p.Lotes.Where(l => l.FechaVencimiento >= hoy && l.CantidadDisponible > 0)
+                    .Sum(l => (int?)l.CantidadDisponible) ?? 0) <= p.StockMinimo,
+                p => p.Lotes);
             return _mapper.Map<IEnumerable<ProductoDto>>(productos);
         }
         private async Task<ResultadoServicio<ProductoDto>?> ValidarProductoAsync(GuardarProductoDto productoDto)
@@ -81,7 +86,7 @@ namespace CVSPharmacy_Backend.Services.Service
                 return validacion;
             }
             // Verificar codigo duplicado
-            var productoExistente = await _productoRepository.GetProductoByCodigoAsync(productoDto.Codigo);
+            var productoExistente = await _productoRepository.FirstOrDefaultAsync(p => p.Codigo == productoDto.Codigo);
             if (productoExistente != null)
             {
                 return new ResultadoServicio<ProductoDto>
@@ -95,9 +100,10 @@ namespace CVSPharmacy_Backend.Services.Service
             producto.Activo = true;
             try
             {
-                await _productoRepository.InsertProducto(producto);
+                await _productoRepository.AddAsync(producto);
+                await _productoRepository.SaveAsync();
             }
-            catch (CodigoProductoDuplicadoException)
+            catch (DuplicateKeyException)
             {
                 return new ResultadoServicio<ProductoDto>
                 {
@@ -107,7 +113,7 @@ namespace CVSPharmacy_Backend.Services.Service
             }
 
             // Consultar el producto recien registrado
-            var productoGuardado = await _productoRepository.GetProductoByIdAsync(producto.Id);
+            var productoGuardado = await _productoRepository.GetByIdAsync(producto.Id, p => p.Lotes);
             var resultadoDto = _mapper.Map<ProductoDto>(productoGuardado ?? producto);
             return new ResultadoServicio<ProductoDto>
             {
@@ -128,7 +134,7 @@ namespace CVSPharmacy_Backend.Services.Service
 
             // Buscar producto existente
             var producto = await _productoRepository
-                .GetProductoParaActualizarAsync(id);
+                .GetForUpdateAsync(id);
 
             if (producto == null)
             {
@@ -141,7 +147,7 @@ namespace CVSPharmacy_Backend.Services.Service
 
             // Verificar que el codigo no pertenezca a otro producto
             var productoConCodigo = await _productoRepository
-                .GetProductoByCodigoAsync(productoDto.Codigo);
+                .FirstOrDefaultAsync(p => p.Codigo == productoDto.Codigo);
 
             if (productoConCodigo != null && productoConCodigo.Id != id)
             {
@@ -157,9 +163,9 @@ namespace CVSPharmacy_Backend.Services.Service
 
             try
             {
-                await _productoRepository.UpdateProducto(producto);
+                await _productoRepository.SaveAsync();
             }
-            catch (CodigoProductoDuplicadoException)
+            catch (DuplicateKeyException)
             {
                 return new ResultadoServicio<ProductoDto>
                 {
@@ -169,7 +175,7 @@ namespace CVSPharmacy_Backend.Services.Service
             }
 
             var productoActualizado = await _productoRepository
-                .GetProductoByIdAsync(id);
+                .GetByIdAsync(id, p => p.Lotes);
 
             return new ResultadoServicio<ProductoDto>
             {
@@ -196,7 +202,7 @@ namespace CVSPharmacy_Backend.Services.Service
             }
 
             var producto = await _productoRepository
-                .GetProductoParaActualizarAsync(id);
+                .GetForUpdateAsync(id);
 
             if (producto == null)
             {
@@ -209,7 +215,7 @@ namespace CVSPharmacy_Backend.Services.Service
 
             producto.Activo = estadoDto.Activo!.Value;
 
-            await _productoRepository.UpdateProducto(producto);
+            await _productoRepository.SaveAsync();
 
             return new ResultadoServicio<bool>
             {

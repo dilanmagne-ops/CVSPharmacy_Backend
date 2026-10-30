@@ -1,7 +1,7 @@
-﻿using CVSPharmacy_Backend.Core.Dtos.Producto;
+using CVSPharmacy_Backend.Core.Dtos.Producto;
 using CVSPharmacy_Backend.Core.Results;
 
-namespace CVSPharmacy_Backend.Core.Interfaces
+namespace CVSPharmacy_Backend.Services.Interfaces
 {
     public interface IProductoService
     {

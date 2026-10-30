@@ -1,12 +1,10 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace CVSPharmacy_Backend.Core.Entities;
 
-public partial class Proveedor
+public partial class Proveedor : BaseEntity
 {
-    public int Id { get; set; }
-
     public string Nit { get; set; } = null!;
 
     public string RazonSocial { get; set; } = null!;

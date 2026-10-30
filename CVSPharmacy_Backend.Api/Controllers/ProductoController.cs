@@ -1,13 +1,7 @@
-﻿using AutoMapper;
-using CVSPharmacy_Backend.Core.Entities;
-using CVSPharmacy_Backend.Core.Interfaces;
-using Microsoft.AspNetCore.Http;
+using CVSPharmacy_Backend.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using MySqlConnector;
 using CVSPharmacy_Backend.Api.Response;
 using CVSPharmacy_Backend.Core.Results;
-using CVSPharmacy_Backend.Services.Validators.Producto;
 using CVSPharmacy_Backend.Core.Dtos.Producto;
 
 namespace CVSPharmacy_Backend.Api.Controllers
@@ -16,9 +10,6 @@ namespace CVSPharmacy_Backend.Api.Controllers
     [ApiController]
     public class ProductoController : ControllerBase
     {
-        private readonly IProductoRepository _productoRepository;
-        private readonly IMapper _mapper;
-        private readonly GuardarProductoDtoValidator _validator;
         private readonly IProductoService _productoService;
         private IActionResult? ResponderError<T>(ResultadoServicio<T> resultado)
         {
@@ -51,72 +42,10 @@ namespace CVSPharmacy_Backend.Api.Controllers
                     return null;
             }
         }
-        public ProductoController(
-            IProductoRepository productoRepository,
-            IProductoService productoService,
-            IMapper mapper,
-            GuardarProductoDtoValidator validator)
+        public ProductoController(IProductoService productoService)
         {
-            _productoRepository = productoRepository;
             _productoService = productoService;
-            _mapper = mapper;
-            _validator = validator;
         }
-        #region Sin DTOs - Demostracion
-
-        // GET: api/products/demo/sin-dto/MED-0001
-        [HttpGet("demo/sin-dto/{codigo}")]
-        public async Task<IActionResult> GetProductoSinDto(string codigo)
-        {
-            var producto = await _productoRepository
-                .GetProductoByCodigoAsync(codigo);
-
-            if (producto == null)
-                return NotFound("Producto no encontrado.");
-
-            return Ok(producto);
-        }
-
-        #endregion
-        #region Con DTOs - Mapeo manual
-
-        // GET: api/products/demo/dto/5
-        [HttpGet("demo/dto/{id:int}")]
-        public async Task<IActionResult> GetProductoDto(int id)
-        {
-            var producto = await _productoRepository
-                .GetProductoByIdAsync(id);
-
-            if (producto == null)
-                return NotFound("Producto no encontrado.");
-
-            DateOnly hoy = DateOnly.FromDateTime(DateTime.Today);
-
-            int stock = producto.Lotes
-                .Where(l => l.FechaVencimiento >= hoy
-                         && l.CantidadDisponible > 0)
-                .Sum(l => l.CantidadDisponible);
-
-            var productoDto = new ProductoDto
-            {
-                Id = producto.Id,
-                Codigo = producto.Codigo,
-                Nombre = producto.Nombre,
-                PrincipioActivo = producto.PrincipioActivo,
-                Presentacion = producto.Presentacion,
-                UnidadMedida = producto.UnidadMedida,
-                PrecioVenta = producto.PrecioVenta,
-                StockMinimo = producto.StockMinimo,
-                Activo = producto.Activo,
-                CreadoEn = producto.CreadoEn,
-                StockDisponible = stock,
-                EsStockCritico = stock <= producto.StockMinimo
-            };
-
-            return Ok(productoDto);
-        }
-        #endregion
-        #region DTO-AutoMapper - Endpoints oficiales CU-03
 
         // GET: api/products?q=paracetamol&active=true
         [HttpGet]
@@ -213,6 +142,5 @@ namespace CVSPharmacy_Backend.Api.Controllers
             return Ok(response);
         }
 
-        #endregion
     }
 }
