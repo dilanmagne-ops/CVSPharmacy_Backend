@@ -1,55 +1,72 @@
-﻿using CVSPharmacy_Backend.Core.Entities;
+﻿using System.Net;
+using CVSPharmacy_Backend.Core.Entities;
+using CVSPharmacy_Backend.Core.Exceptions;
 using CVSPharmacy_Backend.Core.Interfaces;
 using CVSPharmacy_Backend.Infraestructure.Data;
 using Microsoft.EntityFrameworkCore;
+using MySqlConnector;
 
+namespace CVSPharmacy_Backend.Infraestructure.Repositories;
 
-
-namespace CVSPharmacy_Backend.Infraestructure.Repositories
+public class ProveedorRepository : BaseRepository<Proveedor>, IProveedorRepository
 {
-    public class ProveedorRepository: IProveedorRepository
+    public ProveedorRepository(FarmaciaDbContext context) : base(context)
     {
-        private readonly FarmaciaDbContext _dbContext;
+    }
 
-        public ProveedorRepository(FarmaciaDbContext dbContext)
-        {
-            _dbContext = dbContext;
-        }
-        public async Task AddAsync(Proveedor proveedor)
-        {
-            await _dbContext.Proveedores.AddAsync(proveedor);
-        }
+    public override async Task<IEnumerable<Proveedor>> GetAll()
+    {
+        return await _entities.AsNoTracking().ToListAsync();
+    }
 
-        public  async Task<IReadOnlyList<Proveedor>> GetAllAsync()
-        {
-            return await _dbContext.Proveedores
-                .AsNoTracking()
-                .ToListAsync();
-        }
+    public override async Task<Proveedor?> GetById(int id)
+    {
+        return await _entities.AsNoTracking()
+            .FirstOrDefaultAsync(proveedor => proveedor.Id == id);
+    }
 
-        public async Task<Proveedor?> GetByIdAsync(int id)
-        {
-            return await _dbContext.Proveedores
-             .AsNoTracking()
-              .FirstOrDefaultAsync(proveedor => proveedor.Id == id);
-        }
+    public Task<Proveedor?> GetForUpdateAsync(int id)
+    {
+        return _entities.FirstOrDefaultAsync(proveedor => proveedor.Id == id);
+    }
 
-        public async Task<Proveedor?> GetForUpdateAsync(int id)
-        {
-            return await _dbContext.Proveedores
-                .FirstOrDefaultAsync(proveedor => proveedor.Id == id);
-        }
+    public Task<bool> NitExistsAsync(string nit, int? excludeId = null)
+    {
+        return _entities.AnyAsync(proveedor => proveedor.Nit == nit &&
+            (!excludeId.HasValue || proveedor.Id != excludeId.Value));
+    }
 
-        public Task<bool> NitExistsAsync(string nit, int? excludeId = null)
+    public override async Task Add(Proveedor proveedor)
+    {
+        try
         {
-            return _dbContext.Proveedores
-                .AnyAsync(proveedor => proveedor.Nit == nit && (!excludeId.HasValue || proveedor.Id != excludeId.Value));
+            await base.Add(proveedor);
         }
-
-        public Task SaveAsync()
+        catch (DbUpdateException ex)
+            when (ex.InnerException is MySqlException { Number: 1062 })
         {
-            return _dbContext.SaveChangesAsync();
+            throw new NitProveedorDuplicadoException(ex);
         }
+    }
 
+    public override async Task Update(Proveedor proveedor)
+    {
+        try
+        {
+            await base.Update(proveedor);
+        }
+        catch (DbUpdateException ex)
+            when (ex.InnerException is MySqlException { Number: 1062 })
+        {
+            throw new NitProveedorDuplicadoException(ex);
+        }
+    }
+
+    public override Task Delete(int id)
+    {
+        // RN-07: conservar el registro y su historial; la baja se realiza por estado.
+        throw new BusinessException(
+            "Los proveedores no se eliminan; utilice el cambio de estado.",
+            HttpStatusCode.Conflict);
     }
 }

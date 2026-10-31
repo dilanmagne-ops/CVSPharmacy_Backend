@@ -38,7 +38,7 @@ namespace CVSPharmacy_Backend.Services.Service
             return _mapper.Map<IEnumerable<ProductoDto>>(productos);
         }
 
-        public async Task<ProductoDto?> GetProductoByIdAsync(int id)
+        public async Task<ProductoDto> GetProductoByIdAsync(int id)
         {
             var producto = await _productoRepository.GetById(id);
             if (producto == null)
