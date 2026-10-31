@@ -3,10 +3,8 @@ using System.Collections.Generic;
 
 namespace CVSPharmacy_Backend.Core.Entities;
 
-public partial class Recepcion
+public partial class Recepcion : BaseEntity
 {
-    public int Id { get; set; }
-
     public int OrdenId { get; set; }
 
     public int RecibidoPor { get; set; }

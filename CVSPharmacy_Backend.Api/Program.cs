@@ -8,6 +8,7 @@ using CVSPharmacy_Backend.Services.Validators.Proveedor;
 using CVSPharmacy_Backend.Services.Service;
 using CVSPharmacy_Backend.Api.Filters;
 using CVSPharmacy_Backend.Services.Validators.OrdenCompra;
+using CVSPharmacy_Backend.Services.Validators.Recepcion;
 namespace CVSPharmacy_Backend
 {
     public class Program
@@ -30,6 +31,8 @@ namespace CVSPharmacy_Backend
             builder.Services.AddScoped<IProveedorService, CVSPharmacy_Backend.Services.ProveedorService>();
             builder.Services.AddScoped<IOrdenCompraRepository, OrdenCompraRepository>();
             builder.Services.AddScoped<IOrdenCompraService, OrdenCompraService>();
+            builder.Services.AddScoped<IRecepcionRepository, RecepcionRepository>();
+            builder.Services.AddScoped<IRecepcionService, RecepcionService>();
             #endregion
             #region Configurar AutoMapper
             builder.Services.AddAutoMapper(typeof(ProductoProfile).Assembly);
@@ -40,6 +43,7 @@ namespace CVSPharmacy_Backend
             builder.Services.AddScoped<CambiarEstadoProductoDtoValidator>();
             builder.Services.AddScoped<CambiarEstadoProveedorDtoValidator>();
             builder.Services.AddScoped<GuardarOrdenCompraDtoValidator>();
+            builder.Services.AddScoped<GuardarRecepcionDtoValidator>();
 
             #endregion
             builder.Services.AddControllers().ConfigureApiBehaviorOptions(options =>
