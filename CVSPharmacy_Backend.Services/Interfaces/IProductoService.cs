@@ -1,21 +1,14 @@
-﻿using CVSPharmacy_Backend.Core.Dtos.Producto;
+using CVSPharmacy_Backend.Core.Entities;
+using CVSPharmacy_Backend.Core.QueryFilters;
 
-namespace CVSPharmacy_Backend.Services.Interfaces
+namespace CVSPharmacy_Backend.Services.Interfaces;
+
+public interface IProductoService
 {
-    public interface IProductoService
-    {
-        // Consultas
-        Task<IEnumerable<ProductoDto>> GetAllProductosAsync(string? q, bool? active);
-        Task<ProductoDto> GetProductoByIdAsync(int id);
-        Task<IEnumerable<ProductoDto>> GetProductosStockCriticoAsync();
-
-        // Registro
-        Task<ProductoDto> CrearProductoAsync(GuardarProductoDto productoDto);
-
-        // Actualizacion
-        Task<ProductoDto> ActualizarProductoAsync(int id, GuardarProductoDto productoDto);
-
-        // Cambio de estado
-        Task<bool> CambiarEstadoProductoAsync(int id, CambiarEstadoProductoDto estadoDto);
-    }
+    Task<IEnumerable<Producto>> GetAllProductosAsync(ProductoQueryFilters filters);
+    Task<Producto> GetProductoByIdAsync(int id);
+    Task<IEnumerable<Producto>> GetProductosStockCriticoAsync();
+    Task<Producto> CrearProductoAsync(Producto producto);
+    Task<Producto> ActualizarProductoAsync(int id, Producto cambios);
+    Task<bool> CambiarEstadoProductoAsync(int id, bool activo);
 }
