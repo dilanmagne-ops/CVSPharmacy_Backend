@@ -1,164 +1,91 @@
 using System.Net;
-using AutoMapper;
-using CVSPharmacy_Backend.Core.Dtos.Proveedor;
 using CVSPharmacy_Backend.Core.Entities;
 using CVSPharmacy_Backend.Core.Exceptions;
 using CVSPharmacy_Backend.Core.Interfaces;
+using CVSPharmacy_Backend.Core.QueryFilters;
 using CVSPharmacy_Backend.Services.Interfaces;
-using CVSPharmacy_Backend.Services.Validators.Proveedor;
 
 namespace CVSPharmacy_Backend.Services.Services;
 
-public sealed class ProveedorService : IProveedorService
+public sealed class ProveedorService(IUnitOfWork unitOfWork) : IProveedorService
 {
-    private readonly IProveedorRepository _proveedorRepository;
-    private readonly IMapper _mapper;
-    private readonly GuardarProveedorDtoValidator _validator;
-    private readonly CambiarEstadoProveedorDtoValidator _estadoValidator;
+    private IProveedorRepository Proveedores => unitOfWork.ProveedorRepository;
 
-    public ProveedorService(IProveedorRepository proveedorRepository, IMapper mapper,
-        GuardarProveedorDtoValidator validator, CambiarEstadoProveedorDtoValidator estadoValidator)
+    public async Task<IReadOnlyList<Proveedor>> GetAllAsync(ProveedorQueryFilters filters)
     {
-        _proveedorRepository = proveedorRepository;
-        _mapper = mapper;
-        _validator = validator;
-        _estadoValidator = estadoValidator;
+        var proveedores = await Proveedores.GetAll();
+        if (!string.IsNullOrWhiteSpace(filters.Q))
+        {
+            var busqueda = filters.Q.Trim();
+            proveedores = proveedores.Where(p =>
+                p.Nit.Contains(busqueda, StringComparison.OrdinalIgnoreCase) ||
+                p.RazonSocial.Contains(busqueda, StringComparison.OrdinalIgnoreCase));
+        }
+        if (filters.Active.HasValue)
+            proveedores = proveedores.Where(p => p.Activo == filters.Active.Value);
+
+        return proveedores.ToList();
     }
 
-    public async Task<IReadOnlyList<ProveedorDto>> GetAllAsync(string? q = null, bool? active = null)
+    public async Task<Proveedor> GetByIdAsync(int id)
     {
-        var proveedores = await _proveedorRepository.GetAll();
-        // Mismo enfoque de filtros en memoria que CU-03.
-        if (!string.IsNullOrWhiteSpace(q))
-        {
-            var busqueda = q.Trim();
-            proveedores = proveedores.Where(proveedor =>
-                proveedor.Nit.Contains(busqueda, StringComparison.OrdinalIgnoreCase) ||
-                proveedor.RazonSocial.Contains(busqueda, StringComparison.OrdinalIgnoreCase));
-        }
-        if (active.HasValue)
-        {
-            proveedores = proveedores.Where(proveedor => proveedor.Activo == active.Value);
-        }
-        return _mapper.Map<IReadOnlyList<ProveedorDto>>(proveedores);
+        return await Proveedores.GetById(id) ?? throw NoEncontrado();
     }
 
-    public async Task<ProveedorDto> GetByIdAsync(int id)
+    public async Task<Proveedor> CreateAsync(Proveedor proveedor)
     {
-        if (id <= 0)
-        {
-            throw new BusinessException("El ID del proveedor debe ser mayor que cero.");
-        }
-        var proveedor = await _proveedorRepository.GetById(id);
-        if (proveedor is null)
-        {
-            throw new BusinessException("Proveedor no encontrado.", HttpStatusCode.NotFound);
-        }
-        return _mapper.Map<ProveedorDto>(proveedor);
-    }
-
-    public async Task<ProveedorDto> CreateAsync(GuardarProveedorDto proveedorDto)
-    {
-        if (proveedorDto is null)
-        {
-            throw new BusinessException("El cuerpo de la solicitud es obligatorio.");
-        }
-        var resultado = await _validator.ValidateAsync(proveedorDto);
-        if (!resultado.IsValid)
-        {
-            throw new BusinessException("Error de validacion.", HttpStatusCode.BadRequest,
-                resultado.Errors.Select(error => new
-                {
-                    field = error.PropertyName,
-                    error = error.ErrorMessage
-                }).ToList());
-        }
-        if (await _proveedorRepository.NitExistsAsync(proveedorDto.Nit.Trim()))
-        {
-            throw new BusinessException("El NIT ya pertenece a un proveedor registrado.", HttpStatusCode.Conflict);
-        }
-        var proveedor = _mapper.Map<Proveedor>(proveedorDto);
+        await ValidarNitAsync(proveedor.Nit);
         proveedor.Activo = true;
+        await Proveedores.Add(proveedor);
+        await GuardarAsync();
+        return proveedor;
+    }
+
+    public async Task<Proveedor> UpdateAsync(int id, Proveedor cambios)
+    {
+        var proveedor = await Proveedores.GetForUpdateAsync(id) ?? throw NoEncontrado();
+        await ValidarNitAsync(cambios.Nit, id);
+
+        proveedor.Nit = cambios.Nit;
+        proveedor.RazonSocial = cambios.RazonSocial;
+        proveedor.Contacto = cambios.Contacto;
+        proveedor.Telefono = cambios.Telefono;
+        proveedor.Email = cambios.Email;
+        proveedor.Direccion = cambios.Direccion;
+
+        await GuardarAsync();
+        return proveedor;
+    }
+
+    public async Task<Proveedor> ChangeStatusAsync(int id, bool activo)
+    {
+        var proveedor = await Proveedores.GetForUpdateAsync(id) ?? throw NoEncontrado();
+        proveedor.Activo = activo;
+        await unitOfWork.SaveChangesAsync();
+        return proveedor;
+    }
+
+    private async Task ValidarNitAsync(string nit, int? excludeId = null)
+    {
+        if (await Proveedores.NitExistsAsync(nit, excludeId))
+            throw NitDuplicado();
+    }
+
+    private async Task GuardarAsync()
+    {
         try
         {
-            await _proveedorRepository.Add(proveedor);
+            await unitOfWork.SaveChangesAsync();
         }
         catch (NitProveedorDuplicadoException)
         {
-            throw new BusinessException("El NIT ya pertenece a un proveedor registrado.", HttpStatusCode.Conflict);
+            throw NitDuplicado();
         }
-        return _mapper.Map<ProveedorDto>(proveedor);
     }
 
-    public async Task<ProveedorDto> UpdateAsync(int id, GuardarProveedorDto proveedorDto)
-    {
-        if (id <= 0)
-        {
-            throw new BusinessException("El ID del proveedor debe ser mayor que cero.");
-        }
-        if (proveedorDto is null)
-        {
-            throw new BusinessException("El cuerpo de la solicitud es obligatorio.");
-        }
-        var resultado = await _validator.ValidateAsync(proveedorDto);
-        if (!resultado.IsValid)
-        {
-            throw new BusinessException("Error de validacion.", HttpStatusCode.BadRequest,
-                resultado.Errors.Select(error => new
-                {
-                    field = error.PropertyName,
-                    error = error.ErrorMessage
-                }).ToList());
-        }
-        var proveedor = await _proveedorRepository.GetForUpdateAsync(id);
-        if (proveedor is null)
-        {
-            throw new BusinessException("Proveedor no encontrado.", HttpStatusCode.NotFound);
-        }
-        if (await _proveedorRepository.NitExistsAsync(proveedorDto.Nit.Trim(), id))
-        {
-            throw new BusinessException("El NIT ya pertenece a un proveedor registrado.", HttpStatusCode.Conflict);
-        }
-        _mapper.Map(proveedorDto, proveedor);
-        try
-        {
-            await _proveedorRepository.Update(proveedor);
-        }
-        catch (NitProveedorDuplicadoException)
-        {
-            throw new BusinessException("El NIT ya pertenece a un proveedor registrado.", HttpStatusCode.Conflict);
-        }
-        return _mapper.Map<ProveedorDto>(proveedor);
-    }
+    private static BusinessException NitDuplicado() =>
+        new("El NIT ya pertenece a un proveedor registrado.", HttpStatusCode.Conflict);
 
-    public async Task<ProveedorDto> ChangeStatusAsync(int id, CambiarEstadoProveedorDto estadoDto)
-    {
-        if (id <= 0)
-        {
-            throw new BusinessException("El ID del proveedor debe ser mayor que cero.");
-        }
-        if (estadoDto is null)
-        {
-            throw new BusinessException("El cuerpo de la solicitud es obligatorio.");
-        }
-        var validacion = await _estadoValidator.ValidateAsync(estadoDto);
-        if (!validacion.IsValid)
-        {
-            throw new BusinessException("Error de validacion.", HttpStatusCode.BadRequest,
-                validacion.Errors.Select(error => new
-                {
-                    field = error.PropertyName,
-                    error = error.ErrorMessage
-                }).ToList());
-        }
-        var proveedor = await _proveedorRepository.GetForUpdateAsync(id);
-        if (proveedor is null)
-        {
-            throw new BusinessException("Proveedor no encontrado.", HttpStatusCode.NotFound);
-        }
-        proveedor.Activo = estadoDto.Activo!.Value;
-        // No se modifican las órdenes ni sus detalles al cambiar el estado (RN-07/RN-09).
-        await _proveedorRepository.Update(proveedor);
-        return _mapper.Map<ProveedorDto>(proveedor);
-    }
+    private static BusinessException NoEncontrado() =>
+        new("Proveedor no encontrado.", HttpStatusCode.NotFound);
 }

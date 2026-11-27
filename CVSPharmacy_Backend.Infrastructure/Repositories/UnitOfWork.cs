@@ -7,9 +7,12 @@ using MySqlConnector;
 
 namespace CVSPharmacy_Backend.Infrastructure.Repositories;
 
-public class UnitOfWork(FarmaciaDbContext context, IProductoRepository productoRepository) : IUnitOfWork
+public class UnitOfWork(FarmaciaDbContext context, IProductoRepository productoRepository,
+    IProveedorRepository proveedorRepository) : IUnitOfWork
 {
     public IProductoRepository ProductoRepository { get; } = productoRepository;
+
+    public IProveedorRepository ProveedorRepository { get; } = proveedorRepository;
 
     public async Task SaveChangesAsync()
     {
@@ -21,6 +24,11 @@ public class UnitOfWork(FarmaciaDbContext context, IProductoRepository productoR
             && ex.Entries.Any(entry => entry.Entity is Producto))
         {
             throw new CodigoProductoDuplicadoException(ex);
+        }
+        catch (DbUpdateException ex) when (ex.InnerException is MySqlException { Number: 1062 }
+            && ex.Entries.Any(entry => entry.Entity is Proveedor))
+        {
+            throw new NitProveedorDuplicadoException(ex);
         }
     }
 }
