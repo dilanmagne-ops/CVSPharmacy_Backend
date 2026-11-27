@@ -48,12 +48,12 @@ public class RecepcionService(IUnitOfWork unitOfWork) : IRecepcionService
         }
         if (usuarioId <= 0)
         {
-            throw new BusinessException("Configure un usuario de pruebas valido.", HttpStatusCode.InternalServerError);
+            throw new BusinessException("Identidad de usuario inválida.", HttpStatusCode.Unauthorized);
         }
         var usuario = await unitOfWork.UsuarioRepository.GetById(usuarioId);
         if (usuario is null || usuario.Activo != true)
         {
-            throw new BusinessException("El usuario de pruebas no existe o esta inactivo.", HttpStatusCode.Forbidden);
+            throw new BusinessException("El usuario autenticado no existe o está inactivo.", HttpStatusCode.Forbidden);
         }
 
         try

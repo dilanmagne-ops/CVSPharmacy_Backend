@@ -11,7 +11,7 @@ namespace CVSPharmacy_Backend.Infrastructure.Repositories;
 
 public class UnitOfWork(FarmaciaDbContext context, IProductoRepository productoRepository,
     IProveedorRepository proveedorRepository, IOrdenCompraRepository ordenCompraRepository,
-    IBaseRepository<Usuario> usuarioRepository, IRecepcionRepository recepcionRepository,
+    IUsuarioRepository usuarioRepository, IRecepcionRepository recepcionRepository,
     IReportesRepository reportesRepository) : IUnitOfWork
 {
     public IReportesRepository ReportesRepository { get; } = reportesRepository;
@@ -21,7 +21,7 @@ public class UnitOfWork(FarmaciaDbContext context, IProductoRepository productoR
     public IProveedorRepository ProveedorRepository { get; } = proveedorRepository;
 
     public IOrdenCompraRepository OrdenCompraRepository { get; } = ordenCompraRepository;
-    public IBaseRepository<Usuario> UsuarioRepository { get; } = usuarioRepository;
+    public IUsuarioRepository UsuarioRepository { get; } = usuarioRepository;
 
     public IRecepcionRepository RecepcionRepository { get; } = recepcionRepository;
 
@@ -65,6 +65,11 @@ public class UnitOfWork(FarmaciaDbContext context, IProductoRepository productoR
         try
         {
             await context.SaveChangesAsync();
+        }
+        catch (DbUpdateException ex) when (ex.InnerException is MySqlException { Number: 1062 }
+            && ex.Entries.Any(entry => entry.Entity is Usuario))
+        {
+            throw new BusinessException("Correo ya registrado", HttpStatusCode.Conflict);
         }
         catch (DbUpdateException ex) when (ex.InnerException is MySqlException { Number: 1062 }
             && ex.Entries.Any(entry => entry.Entity is Producto))
