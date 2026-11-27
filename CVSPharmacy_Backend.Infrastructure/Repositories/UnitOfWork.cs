@@ -11,8 +11,11 @@ namespace CVSPharmacy_Backend.Infrastructure.Repositories;
 
 public class UnitOfWork(FarmaciaDbContext context, IProductoRepository productoRepository,
     IProveedorRepository proveedorRepository, IOrdenCompraRepository ordenCompraRepository,
-    IUsuarioRepository usuarioRepository, IRecepcionRepository recepcionRepository) : IUnitOfWork
+    IUsuarioRepository usuarioRepository, IRecepcionRepository recepcionRepository,
+    IReportesRepository reportesRepository) : IUnitOfWork
 {
+    public IReportesRepository ReportesRepository { get; } = reportesRepository;
+
     public IProductoRepository ProductoRepository { get; } = productoRepository;
 
     public IProveedorRepository ProveedorRepository { get; } = proveedorRepository;
