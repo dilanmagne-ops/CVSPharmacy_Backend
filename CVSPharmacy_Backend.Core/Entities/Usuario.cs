@@ -3,10 +3,8 @@ using System.Collections.Generic;
 
 namespace CVSPharmacy_Backend.Core.Entities;
 
-public partial class Usuario
+public partial class Usuario : BaseEntity
 {
-    public int Id { get; set; }
-
     public string NombreCompleto { get; set; } = null!;
 
     public string Email { get; set; } = null!;
