@@ -95,8 +95,8 @@ public class OrdenCompraService(IUnitOfWork unitOfWork) : IOrdenCompraService
         if (usuarioId <= 0)
         {
             throw new BusinessException(
-                "Identidad de usuario inválida.",
-                HttpStatusCode.Unauthorized);
+                "Configure un usuario de pruebas valido.",
+                HttpStatusCode.InternalServerError);
         }
 
         var usuario = await unitOfWork.UsuarioRepository.GetById(usuarioId);
@@ -104,7 +104,7 @@ public class OrdenCompraService(IUnitOfWork unitOfWork) : IOrdenCompraService
         if (usuario is null || usuario.Activo != true)
         {
             throw new BusinessException(
-                "El usuario autenticado no existe o está inactivo.",
+                "El usuario de pruebas no existe o esta inactivo.",
                 HttpStatusCode.Forbidden);
         }
 
