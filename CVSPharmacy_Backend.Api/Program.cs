@@ -1,11 +1,12 @@
-using CVSPharmacy_Backend.Infraestructure.Mappings;
+using CVSPharmacy_Backend.Infrastructure.Mappings;
 using CVSPharmacy_Backend.Core.Interfaces;
-using CVSPharmacy_Backend.Infraestructure.Data;
-using CVSPharmacy_Backend.Infraestructure.Repositories;
+using CVSPharmacy_Backend.Infrastructure.Data;
+using CVSPharmacy_Backend.Infrastructure.Repositories;
 using Microsoft.EntityFrameworkCore;
 using CVSPharmacy_Backend.Services.Validators.Producto;
 using CVSPharmacy_Backend.Services.Validators.Proveedor;
-using CVSPharmacy_Backend.Services.Service;
+using CVSPharmacy_Backend.Services.Services;
+using CVSPharmacy_Backend.Services.Interfaces;
 using CVSPharmacy_Backend.Api.Filters;
 using CVSPharmacy_Backend.Services.Validators.OrdenCompra;
 using CVSPharmacy_Backend.Services.Validators.Recepcion;
@@ -28,7 +29,7 @@ namespace CVSPharmacy_Backend
             builder.Services.AddScoped<IProductoRepository, ProductoRepository>();
             builder.Services.AddScoped<IProductoService, ProductoService>();
             builder.Services.AddScoped<IProveedorRepository, ProveedorRepository>();
-            builder.Services.AddScoped<IProveedorService, CVSPharmacy_Backend.Services.ProveedorService>();
+            builder.Services.AddScoped<IProveedorService, ProveedorService>();
             builder.Services.AddScoped<IOrdenCompraRepository, OrdenCompraRepository>();
             builder.Services.AddScoped<IOrdenCompraService, OrdenCompraService>();
             builder.Services.AddScoped<IRecepcionRepository, RecepcionRepository>();

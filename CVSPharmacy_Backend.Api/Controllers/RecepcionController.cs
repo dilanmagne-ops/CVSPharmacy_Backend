@@ -2,7 +2,7 @@ using System.Net;
 using CVSPharmacy_Backend.Api.Response;
 using CVSPharmacy_Backend.Core.Dtos.Recepcion;
 using CVSPharmacy_Backend.Core.Exceptions;
-using CVSPharmacy_Backend.Core.Interfaces;
+using CVSPharmacy_Backend.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CVSPharmacy_Backend.Api.Controllers;
