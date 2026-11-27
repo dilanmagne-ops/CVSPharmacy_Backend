@@ -1,12 +1,13 @@
-using CVSPharmacy_Backend.Core.Dtos.Proveedor;
+using CVSPharmacy_Backend.Core.Entities;
+using CVSPharmacy_Backend.Core.QueryFilters;
 
 namespace CVSPharmacy_Backend.Services.Interfaces;
 
 public interface IProveedorService
 {
-    Task<IReadOnlyList<ProveedorDto>> GetAllAsync(string? q = null, bool? active = null);
-    Task<ProveedorDto> GetByIdAsync(int id);
-    Task<ProveedorDto> CreateAsync(GuardarProveedorDto proveedorDto);
-    Task<ProveedorDto> UpdateAsync(int id, GuardarProveedorDto proveedorDto);
-    Task<ProveedorDto> ChangeStatusAsync(int id, CambiarEstadoProveedorDto estadoDto);
+    Task<IReadOnlyList<Proveedor>> GetAllAsync(ProveedorQueryFilters filters);
+    Task<Proveedor> GetByIdAsync(int id);
+    Task<Proveedor> CreateAsync(Proveedor proveedor);
+    Task<Proveedor> UpdateAsync(int id, Proveedor cambios);
+    Task<Proveedor> ChangeStatusAsync(int id, bool activo);
 }

@@ -1,10 +1,9 @@
-﻿using System.Net;
+using System.Net;
 using CVSPharmacy_Backend.Core.Entities;
 using CVSPharmacy_Backend.Core.Exceptions;
 using CVSPharmacy_Backend.Core.Interfaces;
 using CVSPharmacy_Backend.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
-using MySqlConnector;
 
 namespace CVSPharmacy_Backend.Infrastructure.Repositories;
 
@@ -36,31 +35,7 @@ public class ProveedorRepository : BaseRepository<Proveedor>, IProveedorReposito
             (!excludeId.HasValue || proveedor.Id != excludeId.Value));
     }
 
-    public override async Task Add(Proveedor proveedor)
-    {
-        try
-        {
-            await base.Add(proveedor);
-        }
-        catch (DbUpdateException ex)
-            when (ex.InnerException is MySqlException { Number: 1062 })
-        {
-            throw new NitProveedorDuplicadoException(ex);
-        }
-    }
-
-    public override async Task Update(Proveedor proveedor)
-    {
-        try
-        {
-            await base.Update(proveedor);
-        }
-        catch (DbUpdateException ex)
-            when (ex.InnerException is MySqlException { Number: 1062 })
-        {
-            throw new NitProveedorDuplicadoException(ex);
-        }
-    }
+    protected override Task GuardarSiCorrespondeAsync() => Task.CompletedTask;
 
     public override Task Delete(int id)
     {
