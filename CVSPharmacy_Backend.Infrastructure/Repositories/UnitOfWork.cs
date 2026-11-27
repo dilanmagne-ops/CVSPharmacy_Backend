@@ -64,6 +64,11 @@ public class UnitOfWork(FarmaciaDbContext context, IProductoRepository productoR
             await context.SaveChangesAsync();
         }
         catch (DbUpdateException ex) when (ex.InnerException is MySqlException { Number: 1062 }
+            && ex.Entries.Any(entry => entry.Entity is Usuario))
+        {
+            throw new BusinessException("Correo ya registrado", HttpStatusCode.Conflict);
+        }
+        catch (DbUpdateException ex) when (ex.InnerException is MySqlException { Number: 1062 }
             && ex.Entries.Any(entry => entry.Entity is Producto))
         {
             throw new CodigoProductoDuplicadoException(ex);

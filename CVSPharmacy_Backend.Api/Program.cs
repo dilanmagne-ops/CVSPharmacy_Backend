@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using CVSPharmacy_Backend.Api.Security;
 using CVSPharmacy_Backend.Infrastructure.Security;
 using CVSPharmacy_Backend.Services.Validators.Auth;
+using CVSPharmacy_Backend.Services.Validators.Usuario;
 using CVSPharmacy_Backend.Services.Validators.Producto;
 using CVSPharmacy_Backend.Services.Validators.Proveedor;
 using CVSPharmacy_Backend.Services.Services;
@@ -35,6 +36,9 @@ namespace CVSPharmacy_Backend
             builder.Services.AddScoped<IUsuarioRepository, UsuarioRepository>();
             builder.Services.AddSingleton<IVerificadorPassword, VerificadorPassword>();
             builder.Services.AddScoped<IAuthService, AuthService>();
+            builder.Services.AddScoped<IUsuarioService, UsuarioService>();
+            builder.Services.AddScoped<CrearUsuarioValidator>();
+            builder.Services.AddScoped<EditarUsuarioValidator>();
             builder.Services.AddScoped<LoginDtoValidator>();
             builder.Services.AddScoped<IProductoService, ProductoService>();
             builder.Services.AddScoped<IProveedorRepository, ProveedorRepository>();

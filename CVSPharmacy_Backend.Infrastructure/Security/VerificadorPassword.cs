@@ -8,6 +8,8 @@ public sealed class VerificadorPassword : IVerificadorPassword
     // Ejecutar bcrypt también cuando el correo no tiene una cuenta asociada.
     private static readonly string HashDePrueba = BCrypt.Net.BCrypt.HashPassword(Guid.NewGuid().ToString("N"));
 
+    public string GenerarHash(string password) => BCrypt.Net.BCrypt.HashPassword(password);
+
     public bool Verificar(string password, string? hash)
     {
         if (Encoding.UTF8.GetByteCount(password) > 72) return false;
