@@ -1,3 +1,5 @@
+using CVSPharmacy_Backend.Api.Security;
+using Microsoft.AspNetCore.Authorization;
 using AutoMapper;
 using CVSPharmacy_Backend.Api.Response;
 using CVSPharmacy_Backend.Core.Dtos.Producto;
@@ -11,6 +13,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace CVSPharmacy_Backend.Api.Controllers;
 
 [Route("api/products")]
+[Authorize(Policy = PermisosFarmacia.PersonalFarmacia)]
 [ApiController]
 public class ProductoController(
     IProductoService productoService,
@@ -56,6 +59,7 @@ public class ProductoController(
         return Ok(new ApiResponse<ProductoDto>(mapper.Map<ProductoDto>(producto)));
     }
 
+    [Authorize(Roles = "Administrador")]
     [HttpPatch("{id:int}/status")]
     public async Task<IActionResult> CambiarEstadoProducto(int id, [FromBody] CambiarEstadoProductoDto estadoDto)
     {

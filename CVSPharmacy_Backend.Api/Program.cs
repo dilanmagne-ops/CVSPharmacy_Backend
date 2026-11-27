@@ -75,7 +75,7 @@ namespace CVSPharmacy_Backend
                     options.MapInboundClaims = false;
                     options.TokenValidationParameters = jwt.ParametrosValidacion();
                 });
-            builder.Services.AddAuthorization();
+            PermisosFarmacia.Registrar(builder.Services);
 
             var app = builder.Build();
             app.UseMiddleware<ExceptionHandlingMiddleware>();
