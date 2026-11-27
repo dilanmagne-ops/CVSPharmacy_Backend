@@ -1,92 +1,66 @@
-﻿using CVSPharmacy_Backend.Api.Response;
+using AutoMapper;
+using CVSPharmacy_Backend.Api.Response;
 using CVSPharmacy_Backend.Core.Dtos.Producto;
+using CVSPharmacy_Backend.Core.Entities;
+using CVSPharmacy_Backend.Core.QueryFilters;
 using CVSPharmacy_Backend.Services.Interfaces;
+using CVSPharmacy_Backend.Services.Validators.Producto;
+using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
-namespace CVSPharmacy_Backend.Api.Controllers
+
+namespace CVSPharmacy_Backend.Api.Controllers;
+
+[Route("api/products")]
+[ApiController]
+public class ProductoController(
+    IProductoService productoService,
+    IMapper mapper,
+    GuardarProductoDtoValidator guardarValidator,
+    CambiarEstadoProductoDtoValidator estadoValidator) : ControllerBase
 {
-    [Route("api/products")]
-    [ApiController]
-    public class ProductoController : ControllerBase
+    [HttpGet]
+    public async Task<IActionResult> GetProductos([FromQuery] ProductoQueryFilters filters)
     {
-        private readonly IProductoService _productoService;
-        public ProductoController(IProductoService productoService)
-        {
-            _productoService = productoService;
-        }
-        #region DTO-AutoMapper - Endpoints oficiales CU-03
+        var productos = await productoService.GetAllProductosAsync(filters);
+        return Ok(new ApiResponse<IEnumerable<ProductoDto>>(mapper.Map<IEnumerable<ProductoDto>>(productos)));
+    }
 
-        // GET: api/products?q=paracetamol&active=true
-        [HttpGet]
-        public async Task<IActionResult> GetProductos([FromQuery] string? q, [FromQuery] bool? active)
-        {
-            var productosDto = await _productoService.GetAllProductosAsync(q, active);
-            var response = new ApiResponse<IEnumerable<ProductoDto>>(productosDto);
-            return Ok(response);
-        }
+    [HttpGet("{id:int}")]
+    public async Task<IActionResult> GetProductoById(int id)
+    {
+        var producto = await productoService.GetProductoByIdAsync(id);
+        return Ok(new ApiResponse<ProductoDto>(mapper.Map<ProductoDto>(producto)));
+    }
 
-        // GET: api/products/5
-        [HttpGet("{id:int}")]
-        public async Task<IActionResult> GetProductoById(int id)
-        {
-            var productoDto = await _productoService.GetProductoByIdAsync(id);
-            var response = new ApiResponse<ProductoDto>(productoDto);
-            return Ok(response);
-        }
+    [HttpGet("low-stock")]
+    public async Task<IActionResult> GetProductosStockCritico()
+    {
+        var productos = await productoService.GetProductosStockCriticoAsync();
+        return Ok(new ApiResponse<IEnumerable<ProductoDto>>(mapper.Map<IEnumerable<ProductoDto>>(productos)));
+    }
 
-        // GET: api/products/low-stock
-        [HttpGet("low-stock")]
-        public async Task<IActionResult> GetProductosStockCritico()
-        {
-            var productosDto = await _productoService.GetProductosStockCriticoAsync();
-            var response = new ApiResponse<IEnumerable<ProductoDto>>(productosDto);
-            return Ok(response);
-        }
+    [HttpPost]
+    public async Task<IActionResult> InsertProducto([FromBody] GuardarProductoDto productoDto)
+    {
+        await guardarValidator.ValidateAndThrowAsync(productoDto);
+        var producto = await productoService.CrearProductoAsync(mapper.Map<Producto>(productoDto));
+        return CreatedAtAction(nameof(GetProductoById), new { id = producto.Id },
+            new ApiResponse<ProductoDto>(mapper.Map<ProductoDto>(producto)));
+    }
 
-        // POST: api/products
+    [HttpPut("{id:int}")]
+    public async Task<IActionResult> UpdateProducto(int id, [FromBody] GuardarProductoDto productoDto)
+    {
+        await guardarValidator.ValidateAndThrowAsync(productoDto);
+        var producto = await productoService.ActualizarProductoAsync(id, mapper.Map<Producto>(productoDto));
+        return Ok(new ApiResponse<ProductoDto>(mapper.Map<ProductoDto>(producto)));
+    }
 
-        [HttpPost]
-        public async Task<IActionResult> InsertProducto([FromBody] GuardarProductoDto productoDto)
-        {
-            var producto = await _productoService.CrearProductoAsync(productoDto);
-            var response = new ApiResponse<ProductoDto>(producto);
-            return CreatedAtAction(
-              nameof(GetProductoById),
-              new { id = producto.Id },
-              response);
-        }
-
-
-        // PUT: api/products/5
-
-        [HttpPut("{id:int}")]
-        public async Task<IActionResult> UpdateProducto(
-            int id,
-            [FromBody] GuardarProductoDto productoDto)
-        {
-            var producto = await _productoService
-                .ActualizarProductoAsync(id, productoDto);
-
-            var response = new ApiResponse<ProductoDto>(producto);
-
-            return Ok(response);
-        }
-
-
-        // PATCH: api/products/5/status
-        [HttpPatch("{id:int}/status")]
-        public async Task<IActionResult> CambiarEstadoProducto(int id, [FromBody] CambiarEstadoProductoDto estadoDto)
-        {
-            var activo = await _productoService.CambiarEstadoProductoAsync(id, estadoDto);
-            var response = new ApiResponse<object>(new
-            {
-                message = "Estado actualizado correctamente.",
-                id = id,
-                activo = activo
-            });
-
-            return Ok(response);
-        }
-
-        #endregion
+    [HttpPatch("{id:int}/status")]
+    public async Task<IActionResult> CambiarEstadoProducto(int id, [FromBody] CambiarEstadoProductoDto estadoDto)
+    {
+        await estadoValidator.ValidateAndThrowAsync(estadoDto);
+        var activo = await productoService.CambiarEstadoProductoAsync(id, estadoDto.Activo!.Value);
+        return Ok(new ApiResponse<object>(new { message = "Estado actualizado correctamente.", id, activo }));
     }
 }

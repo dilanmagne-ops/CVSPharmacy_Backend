@@ -2,8 +2,6 @@
 using CVSPharmacy_Backend.Core.Interfaces;
 using CVSPharmacy_Backend.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
-using CVSPharmacy_Backend.Core.Exceptions;
-using MySqlConnector;
 
 namespace CVSPharmacy_Backend.Infrastructure.Repositories
 {
@@ -47,30 +45,8 @@ namespace CVSPharmacy_Backend.Infrastructure.Repositories
             return producto;
         }
 
-        public override async Task Add(Producto producto)
-        {
-            try
-            {
-                await base.Add(producto);
-            }
-            catch (DbUpdateException ex) when (ex.InnerException is MySqlException { Number: 1062 })
-            {
-                throw new CodigoProductoDuplicadoException(ex);
-            }
-        }
-
-        public override async Task Update(Producto producto)
-        {
-            try
-            {
-                await base.Update(producto);
-            }
-            catch (DbUpdateException ex)
-                when (ex.InnerException is MySqlException { Number: 1062 })
-            {
-                throw new CodigoProductoDuplicadoException(ex);
-            }
-        }
+        // Producto confirma los cambios mediante la unidad de trabajo.
+        protected override Task GuardarSiCorrespondeAsync() => Task.CompletedTask;
 
         public async Task<IEnumerable<Producto>> GetProductosStockCriticoAsync()
         {
