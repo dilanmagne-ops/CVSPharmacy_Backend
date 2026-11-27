@@ -1,6 +1,6 @@
 ﻿using CVSPharmacy_Backend.Api.Response;
 using CVSPharmacy_Backend.Core.Dtos.Producto;
-using CVSPharmacy_Backend.Core.Interfaces;
+using CVSPharmacy_Backend.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 namespace CVSPharmacy_Backend.Api.Controllers
 {

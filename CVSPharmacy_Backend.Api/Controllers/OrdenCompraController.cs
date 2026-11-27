@@ -1,6 +1,6 @@
 ﻿using CVSPharmacy_Backend.Api.Response;
 using CVSPharmacy_Backend.Core.Dtos.OrdenCompra;
-using CVSPharmacy_Backend.Core.Interfaces;
+using CVSPharmacy_Backend.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using System.Net;
 using CVSPharmacy_Backend.Core.Exceptions;

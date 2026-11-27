@@ -13,7 +13,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\CVSPharmacy_Backend.Core\CVSPharmacy_Backend.Core.csproj" />
+    <ProjectReference Include="..\CVSPharmacy_Backend.Infrastructure\CVSPharmacy_Backend.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>
