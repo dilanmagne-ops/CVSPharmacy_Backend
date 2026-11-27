@@ -1,26 +1,14 @@
-﻿using CVSPharmacy_Backend.Core.Dtos.OrdenCompra;
-using System;
-using System.Collections.Generic;
-using System.Text;
+using CVSPharmacy_Backend.Core.Entities;
+using CVSPharmacy_Backend.Core.QueryFilters;
 
-namespace CVSPharmacy_Backend.Services.Interfaces
+namespace CVSPharmacy_Backend.Services.Interfaces;
+
+public interface IOrdenCompraService
 {
-    public interface IOrdenCompraService
-    {
-        Task<IEnumerable<OrdenCompraDto>> 
-        GetAllOrdenesAsync(
-            string? status,
-            int? supplierId,
-            DateTime? from,
-            DateTime? to);
-
-        Task<OrdenCompraDto> GetOrdenByIdAsync(int id);
-
-        Task<OrdenCompraDto> CrearOrdenAsync(GuardarOrdenCompraDto ordenDto, int usuarioId);
-        Task<OrdenCompraDto> ActualizarOrdenAsync(int id, GuardarOrdenCompraDto ordenDto);
-
-        Task<OrdenCompraDto> EmitirOrdenAsync(int id);
-
-        Task<OrdenCompraDto> CancelarOrdenAsync(int id);
-    }
+    Task<IEnumerable<OrdenesCompra>> GetAllOrdenesAsync(OrdenCompraQueryFilters filters);
+    Task<OrdenesCompra> GetOrdenByIdAsync(int id);
+    Task<OrdenesCompra> CrearOrdenAsync(OrdenesCompra solicitud, int usuarioId);
+    Task<OrdenesCompra> ActualizarOrdenAsync(int id, OrdenesCompra solicitud);
+    Task<OrdenesCompra> EmitirOrdenAsync(int id);
+    Task<OrdenesCompra> CancelarOrdenAsync(int id);
 }
