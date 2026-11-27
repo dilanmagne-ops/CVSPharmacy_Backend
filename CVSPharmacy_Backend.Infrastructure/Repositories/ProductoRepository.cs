@@ -1,4 +1,4 @@
-﻿using CVSPharmacy_Backend.Core.Entities;
+using CVSPharmacy_Backend.Core.Entities;
 using CVSPharmacy_Backend.Core.Interfaces;
 using CVSPharmacy_Backend.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -47,6 +47,17 @@ namespace CVSPharmacy_Backend.Infrastructure.Repositories
 
         // Producto confirma los cambios mediante la unidad de trabajo.
         protected override Task GuardarSiCorrespondeAsync() => Task.CompletedTask;
+
+        public async Task<List<Producto>> GetProductosAsync(
+            IEnumerable<int> ids)
+        {
+            var idsProductos = ids.Distinct().ToList();
+
+            return await _context.Productos
+                .AsNoTracking()
+                .Where(producto => idsProductos.Contains(producto.Id))
+                .ToListAsync();
+        }
 
         public async Task<IEnumerable<Producto>> GetProductosStockCriticoAsync()
         {

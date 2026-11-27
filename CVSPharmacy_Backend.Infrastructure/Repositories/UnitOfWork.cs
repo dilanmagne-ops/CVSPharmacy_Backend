@@ -8,11 +8,15 @@ using MySqlConnector;
 namespace CVSPharmacy_Backend.Infrastructure.Repositories;
 
 public class UnitOfWork(FarmaciaDbContext context, IProductoRepository productoRepository,
-    IProveedorRepository proveedorRepository) : IUnitOfWork
+    IProveedorRepository proveedorRepository, IOrdenCompraRepository ordenCompraRepository,
+    IBaseRepository<Usuario> usuarioRepository) : IUnitOfWork
 {
     public IProductoRepository ProductoRepository { get; } = productoRepository;
 
     public IProveedorRepository ProveedorRepository { get; } = proveedorRepository;
+
+    public IOrdenCompraRepository OrdenCompraRepository { get; } = ordenCompraRepository;
+    public IBaseRepository<Usuario> UsuarioRepository { get; } = usuarioRepository;
 
     public async Task SaveChangesAsync()
     {
@@ -29,6 +33,12 @@ public class UnitOfWork(FarmaciaDbContext context, IProductoRepository productoR
             && ex.Entries.Any(entry => entry.Entity is Proveedor))
         {
             throw new NitProveedorDuplicadoException(ex);
+        }
+        catch (DbUpdateException ex) when (ex.InnerException is MySqlException { Number: 1062 } mysql
+            && mysql.Message.Contains("uq_ordenes_compra_numero", StringComparison.OrdinalIgnoreCase))
+        {
+            context.ChangeTracker.Clear();
+            throw new NumeroOrdenDuplicadoException(ex);
         }
     }
 }

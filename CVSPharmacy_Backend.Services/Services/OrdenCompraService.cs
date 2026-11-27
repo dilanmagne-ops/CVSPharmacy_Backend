@@ -1,36 +1,22 @@
-﻿using System.Net;
-using AutoMapper;
-using CVSPharmacy_Backend.Core.Dtos.OrdenCompra;
+using System.Net;
+using CVSPharmacy_Backend.Core.QueryFilters;
 using CVSPharmacy_Backend.Core.Exceptions;
 using CVSPharmacy_Backend.Core.Interfaces;
 using CVSPharmacy_Backend.Services.Interfaces;
 using CVSPharmacy_Backend.Core.Entities;
-using CVSPharmacy_Backend.Services.Validators.OrdenCompra;
 
 namespace CVSPharmacy_Backend.Services.Services;
 
-public class OrdenCompraService : IOrdenCompraService
+public class OrdenCompraService(IUnitOfWork unitOfWork) : IOrdenCompraService
 {
-    private readonly IOrdenCompraRepository _ordenCompraRepository;
-    private readonly IMapper _mapper;
-    private readonly GuardarOrdenCompraDtoValidator _validator;
+    private IOrdenCompraRepository Ordenes => unitOfWork.OrdenCompraRepository;
 
-    public OrdenCompraService(
-        IOrdenCompraRepository ordenCompraRepository,
-        IMapper mapper,
-        GuardarOrdenCompraDtoValidator validator)
+    public async Task<IEnumerable<OrdenesCompra>> GetAllOrdenesAsync(OrdenCompraQueryFilters filters)
     {
-        _ordenCompraRepository = ordenCompraRepository;
-        _mapper = mapper;
-        _validator = validator;
-    }
-
-    public async Task<IEnumerable<OrdenCompraDto>> GetAllOrdenesAsync(
-        string? status,
-        int? supplierId,
-        DateTime? from,
-        DateTime? to)
-    {
+        var status = filters.Status;
+        var supplierId = filters.SupplierId;
+        var from = filters.From;
+        var to = filters.To;
         if (supplierId.HasValue && supplierId.Value <= 0)
         {
             throw new BusinessException(
@@ -59,7 +45,7 @@ public class OrdenCompraService : IOrdenCompraService
             }
         }
 
-        var ordenes = await _ordenCompraRepository.GetAll();
+        var ordenes = await Ordenes.GetAll();
 
         if (!string.IsNullOrWhiteSpace(status))
         {
@@ -81,10 +67,10 @@ public class OrdenCompraService : IOrdenCompraService
             ordenes = ordenes.Where(orden => orden.FechaCreacion.Date <= to.Value.Date);
         }
 
-        return _mapper.Map<IEnumerable<OrdenCompraDto>>(ordenes);
+        return ordenes;
     }
 
-    public async Task<OrdenCompraDto> GetOrdenByIdAsync(int id)
+    public async Task<OrdenesCompra> GetOrdenByIdAsync(int id)
     {
         if (id <= 0)
         {
@@ -92,7 +78,7 @@ public class OrdenCompraService : IOrdenCompraService
                 "El ID de la orden debe ser mayor que cero.");
         }
 
-        var orden = await _ordenCompraRepository.GetById(id);
+        var orden = await Ordenes.GetById(id);
 
         if (orden is null)
         {
@@ -101,58 +87,11 @@ public class OrdenCompraService : IOrdenCompraService
                 HttpStatusCode.NotFound);
         }
 
-        return _mapper.Map<OrdenCompraDto>(orden);
+        return orden;
     }
-    public async Task<OrdenCompraDto> CrearOrdenAsync(
-    GuardarOrdenCompraDto ordenDto,
-    int usuarioId)
+    public async Task<OrdenesCompra> CrearOrdenAsync(OrdenesCompra solicitud, int usuarioId)
     {
-        if (ordenDto is null)
-        {
-            throw new BusinessException(
-                "El cuerpo de la solicitud es obligatorio.");
-        }
-
-        var validacion = await _validator.ValidateAsync(ordenDto);
-
-        if (!validacion.IsValid)
-        {
-            throw new BusinessException(
-                "Error de validacion.",
-                HttpStatusCode.BadRequest,
-                validacion.Errors.Select(error => new
-                {
-                    field = error.PropertyName,
-                    error = error.ErrorMessage
-                }).ToList());
-        }
-
-        var proveedor = await _ordenCompraRepository
-            .GetProveedorAsync(ordenDto.ProveedorId!.Value);
-
-        if (proveedor is null || proveedor.Activo != true)
-        {
-            throw new BusinessException(
-                "El proveedor no existe o esta inactivo.",
-                HttpStatusCode.UnprocessableEntity);
-        }
-
-        var idsProductos = ordenDto.Items
-            .Select(item => item.ProductoId!.Value)
-            .Distinct()
-            .ToList();
-
-        var productos = await _ordenCompraRepository
-            .GetProductosAsync(idsProductos);
-
-        if (productos.Count != idsProductos.Count ||
-            productos.Any(producto => producto.Activo != true))
-        {
-            throw new BusinessException(
-                "Hay productos inexistentes o inactivos.",
-                HttpStatusCode.UnprocessableEntity);
-        }
-
+        await ValidarProveedorYProductosAsync(solicitud);
         if (usuarioId <= 0)
         {
             throw new BusinessException(
@@ -160,8 +99,7 @@ public class OrdenCompraService : IOrdenCompraService
                 HttpStatusCode.InternalServerError);
         }
 
-        var usuario = await _ordenCompraRepository
-            .GetUsuarioAsync(usuarioId);
+        var usuario = await unitOfWork.UsuarioRepository.GetById(usuarioId);
 
         if (usuario is null || usuario.Activo != true)
         {
@@ -175,7 +113,7 @@ public class OrdenCompraService : IOrdenCompraService
 
         for (var intento = 0; intento < 3; intento++)
         {
-            var numeros = await _ordenCompraRepository
+            var numeros = await Ordenes
                 .GetNumerosOrdenAsync(prefijo);
 
             long maximo = 0;
@@ -200,29 +138,23 @@ public class OrdenCompraService : IOrdenCompraService
                     HttpStatusCode.Conflict);
             }
 
-            var orden = new OrdenesCompra
-            {
-                Numero = $"{prefijo}{maximo + 1:D4}",
-                ProveedorId = proveedor.Id,
-                CreadoPor = usuario.Id,
-                Estado = "Borrador",
-                FechaCreacion = ahora,
-                Observaciones = ordenDto.Observaciones?.Trim(),
-                DetalleOrdenCompras =
-                    _mapper.Map<List<DetalleOrdenCompra>>(ordenDto.Items)
-            };
+            solicitud.Numero = $"{prefijo}{maximo + 1:D4}";
+            solicitud.CreadoPor = usuario.Id;
+            solicitud.Estado = "Borrador";
+            solicitud.FechaCreacion = ahora;
 
             try
             {
-                await _ordenCompraRepository.Add(orden);
+                await Ordenes.Add(solicitud);
+                await unitOfWork.SaveChangesAsync();
             }
             catch (NumeroOrdenDuplicadoException)
             {
                 continue;
             }
 
-            var ordenGuardada = await _ordenCompraRepository
-                .GetById(orden.Id);
+            var ordenGuardada = await Ordenes
+                .GetById(solicitud.Id);
 
             if (ordenGuardada is null)
             {
@@ -231,7 +163,7 @@ public class OrdenCompraService : IOrdenCompraService
                     HttpStatusCode.InternalServerError);
             }
 
-            return _mapper.Map<OrdenCompraDto>(ordenGuardada);
+            return ordenGuardada;
         }
 
         throw new BusinessException(
@@ -239,31 +171,16 @@ public class OrdenCompraService : IOrdenCompraService
             HttpStatusCode.Conflict);
     }
 
-    public async Task<OrdenCompraDto> ActualizarOrdenAsync(
-        int id, GuardarOrdenCompraDto ordenDto)
+    public async Task<OrdenesCompra> ActualizarOrdenAsync(
+        int id, OrdenesCompra solicitud)
     {
         if (id <= 0)
         {
             throw new BusinessException("El ID de la orden debe ser mayor que cero.");
         }
-        if (ordenDto is null)
+        return await Ordenes.EjecutarEnTransaccionAsync(async () =>
         {
-            throw new BusinessException("El cuerpo de la solicitud es obligatorio.");
-        }
-        var validacion = await _validator.ValidateAsync(ordenDto);
-        if (!validacion.IsValid)
-        {
-            throw new BusinessException("Error de validacion.", HttpStatusCode.BadRequest,
-                validacion.Errors.Select(error => new
-                {
-                    field = error.PropertyName,
-                    error = error.ErrorMessage
-                }).ToList());
-        }
-
-        return await _ordenCompraRepository.EjecutarEnTransaccionAsync(async () =>
-        {
-            var orden = await _ordenCompraRepository.GetOrdenParaActualizarAsync(id);
+            var orden = await Ordenes.GetOrdenParaActualizarAsync(id);
             if (orden is null)
             {
                 throw new BusinessException("Orden de compra no encontrada.", HttpStatusCode.NotFound);
@@ -272,46 +189,34 @@ public class OrdenCompraService : IOrdenCompraService
             {
                 throw new BusinessException("Solo se pueden editar ordenes en Borrador.", HttpStatusCode.Conflict);
             }
-            if (await _ordenCompraRepository.TieneRecepcionesAsync(id))
+            if (await Ordenes.TieneRecepcionesAsync(id))
             {
                 throw new BusinessException("No se puede editar una orden con recepciones.", HttpStatusCode.Conflict);
             }
-            var proveedor = await _ordenCompraRepository.GetProveedorAsync(ordenDto.ProveedorId!.Value);
-            if (proveedor is null || proveedor.Activo != true)
-            {
-                throw new BusinessException("El proveedor no existe o esta inactivo.", HttpStatusCode.UnprocessableEntity);
-            }
-            var idsProductos = ordenDto.Items.Select(item => item.ProductoId!.Value).Distinct().ToList();
-            var productos = await _ordenCompraRepository.GetProductosAsync(idsProductos);
-            if (productos.Count != idsProductos.Count || productos.Any(producto => producto.Activo != true))
-            {
-                throw new BusinessException("Hay productos inexistentes o inactivos.", HttpStatusCode.UnprocessableEntity);
-            }
+            await ValidarProveedorYProductosAsync(solicitud);
+            orden.ProveedorId = solicitud.ProveedorId;
+            orden.Observaciones = solicitud.Observaciones;
+            Ordenes.ReemplazarDetalles(orden, solicitud.DetalleOrdenCompras);
+            await unitOfWork.SaveChangesAsync();
 
-            orden.ProveedorId = proveedor.Id;
-            orden.Observaciones = ordenDto.Observaciones?.Trim();
-            _ordenCompraRepository.ReemplazarDetalles(orden,
-                _mapper.Map<List<DetalleOrdenCompra>>(ordenDto.Items));
-            await _ordenCompraRepository.Update(orden);
-
-            var actualizada = await _ordenCompraRepository.GetById(id);
+            var actualizada = await Ordenes.GetById(id);
             if (actualizada is null)
             {
                 throw new BusinessException("No se pudo recuperar la orden actualizada.", HttpStatusCode.InternalServerError);
             }
-            return _mapper.Map<OrdenCompraDto>(actualizada);
+            return actualizada;
         });
     }
 
-    public async Task<OrdenCompraDto> EmitirOrdenAsync(int id)
+    public async Task<OrdenesCompra> EmitirOrdenAsync(int id)
     {
         if (id <= 0)
         {
             throw new BusinessException("El ID de la orden debe ser mayor que cero.");
         }
-        return await _ordenCompraRepository.EjecutarEnTransaccionAsync(async () =>
+        return await Ordenes.EjecutarEnTransaccionAsync(async () =>
         {
-            var orden = await _ordenCompraRepository.GetOrdenParaActualizarAsync(id);
+            var orden = await Ordenes.GetOrdenParaActualizarAsync(id);
             if (orden is null)
             {
                 throw new BusinessException("Orden de compra no encontrada.", HttpStatusCode.NotFound);
@@ -320,7 +225,7 @@ public class OrdenCompraService : IOrdenCompraService
             {
                 throw new BusinessException("Solo se puede emitir una orden en Borrador.", HttpStatusCode.Conflict);
             }
-            if (await _ordenCompraRepository.TieneRecepcionesAsync(id))
+            if (await Ordenes.TieneRecepcionesAsync(id))
             {
                 throw new BusinessException("No se puede emitir un borrador con recepciones.", HttpStatusCode.Conflict);
             }
@@ -329,39 +234,29 @@ public class OrdenCompraService : IOrdenCompraService
             {
                 throw new BusinessException("La orden debe contener detalles con cantidades y precios validos.", HttpStatusCode.UnprocessableEntity);
             }
-            var proveedor = await _ordenCompraRepository.GetProveedorAsync(orden.ProveedorId);
-            if (proveedor is null || proveedor.Activo != true)
-            {
-                throw new BusinessException("El proveedor no existe o esta inactivo.", HttpStatusCode.UnprocessableEntity);
-            }
-            var idsProductos = orden.DetalleOrdenCompras.Select(detalle => detalle.ProductoId).Distinct().ToList();
-            var productos = await _ordenCompraRepository.GetProductosAsync(idsProductos);
-            if (productos.Count != idsProductos.Count || productos.Any(producto => producto.Activo != true))
-            {
-                throw new BusinessException("Hay productos inexistentes o inactivos.", HttpStatusCode.UnprocessableEntity);
-            }
+            await ValidarProveedorYProductosAsync(orden);
 
             orden.Estado = "Emitida";
             orden.FechaEmision = DateTime.Now;
-            await _ordenCompraRepository.Update(orden);
-            var emitida = await _ordenCompraRepository.GetById(id);
+            await unitOfWork.SaveChangesAsync();
+            var emitida = await Ordenes.GetById(id);
             if (emitida is null)
             {
                 throw new BusinessException("No se pudo recuperar la orden emitida.", HttpStatusCode.InternalServerError);
             }
-            return _mapper.Map<OrdenCompraDto>(emitida);
+            return emitida;
         });
     }
 
-    public async Task<OrdenCompraDto> CancelarOrdenAsync(int id)
+    public async Task<OrdenesCompra> CancelarOrdenAsync(int id)
     {
         if (id <= 0)
         {
             throw new BusinessException("El ID de la orden debe ser mayor que cero.");
         }
-        return await _ordenCompraRepository.EjecutarEnTransaccionAsync(async () =>
+        return await Ordenes.EjecutarEnTransaccionAsync(async () =>
         {
-            var orden = await _ordenCompraRepository.GetOrdenParaActualizarAsync(id);
+            var orden = await Ordenes.GetOrdenParaActualizarAsync(id);
             if (orden is null)
             {
                 throw new BusinessException("Orden de compra no encontrada.", HttpStatusCode.NotFound);
@@ -370,19 +265,31 @@ public class OrdenCompraService : IOrdenCompraService
             {
                 throw new BusinessException("Solo se pueden cancelar ordenes en Borrador o Emitida.", HttpStatusCode.Conflict);
             }
-            if (await _ordenCompraRepository.TieneRecepcionesAsync(id))
+            if (await Ordenes.TieneRecepcionesAsync(id))
             {
                 throw new BusinessException("No se puede cancelar una orden con recepciones.", HttpStatusCode.Conflict);
             }
 
             orden.Estado = "Cancelada";
-            await _ordenCompraRepository.Update(orden);
-            var cancelada = await _ordenCompraRepository.GetById(id);
+            await unitOfWork.SaveChangesAsync();
+            var cancelada = await Ordenes.GetById(id);
             if (cancelada is null)
             {
                 throw new BusinessException("No se pudo recuperar la orden cancelada.", HttpStatusCode.InternalServerError);
             }
-            return _mapper.Map<OrdenCompraDto>(cancelada);
+            return cancelada;
         });
+    }
+
+    private async Task ValidarProveedorYProductosAsync(OrdenesCompra orden)
+    {
+        var proveedor = await unitOfWork.ProveedorRepository.GetById(orden.ProveedorId);
+        if (proveedor?.Activo != true)
+            throw new BusinessException("El proveedor no existe o esta inactivo.", HttpStatusCode.UnprocessableEntity);
+
+        var ids = orden.DetalleOrdenCompras.Select(detalle => detalle.ProductoId).Distinct().ToList();
+        var productos = await unitOfWork.ProductoRepository.GetProductosAsync(ids);
+        if (productos.Count != ids.Count || productos.Any(producto => producto.Activo != true))
+            throw new BusinessException("Hay productos inexistentes o inactivos.", HttpStatusCode.UnprocessableEntity);
     }
 }

@@ -1,4 +1,4 @@
-﻿using AutoMapper;
+using AutoMapper;
 using CVSPharmacy_Backend.Core.Dtos.OrdenCompra;
 using CVSPharmacy_Backend.Core.Entities;
 
@@ -23,6 +23,10 @@ public class OrdenCompraProfile : Profile
                 opt => opt.MapFrom(src =>
                     src.DetalleOrdenCompras.Sum(item =>
                         item.CantidadSolicitada * item.PrecioUnitario)));
+
+        CreateMap<GuardarOrdenCompraDto, OrdenesCompra>(MemberList.Source)
+            .ForMember(dest => dest.Observaciones, opt => opt.MapFrom(src => src.Observaciones == null ? null : src.Observaciones.Trim()))
+            .ForMember(dest => dest.DetalleOrdenCompras, opt => opt.MapFrom(src => src.Items));
 
         CreateMap<ItemOrdenCompraDto, DetalleOrdenCompra>()
             .ForMember(dest => dest.Id, opt => opt.Ignore())

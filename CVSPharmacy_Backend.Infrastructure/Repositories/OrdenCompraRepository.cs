@@ -1,4 +1,4 @@
-﻿using System.Data;
+using System.Data;
 using System.Net;
 using CVSPharmacy_Backend.Core.Entities;
 using CVSPharmacy_Backend.Core.Interfaces;
@@ -57,24 +57,6 @@ public class OrdenCompraRepository : BaseRepository<OrdenesCompra>, IOrdenCompra
         return orden;
     }
 
-    public async Task<Proveedor?> GetProveedorAsync(int id)
-    {
-        return await _context.Proveedores
-            .AsNoTracking()
-            .FirstOrDefaultAsync(proveedor => proveedor.Id == id);
-    }
-
-    public async Task<List<Producto>> GetProductosAsync(
-        IEnumerable<int> ids)
-    {
-        var idsProductos = ids.Distinct().ToList();
-
-        return await _context.Productos
-            .AsNoTracking()
-            .Where(producto => idsProductos.Contains(producto.Id))
-            .ToListAsync();
-    }
-
     public async Task<bool> TieneRecepcionesAsync(int ordenId)
     {
         return await _context.Recepciones
@@ -129,20 +111,7 @@ public class OrdenCompraRepository : BaseRepository<OrdenesCompra>, IOrdenCompra
             .Select(orden => orden.Numero)
             .ToListAsync();
     }
-    public override async Task Add(OrdenesCompra orden)
-    {
-        try
-        {
-            await base.Add(orden);
-        }
-        catch (DbUpdateException ex)
-            when (ex.InnerException is MySqlException { Number: 1062 })
-        {
-            _context.ChangeTracker.Clear();
-
-            throw new NumeroOrdenDuplicadoException(ex);
-        }
-    }
+    protected override Task GuardarSiCorrespondeAsync() => Task.CompletedTask;
 
     public async Task<T> EjecutarEnTransaccionAsync<T>(Func<Task<T>> operacion)
     {

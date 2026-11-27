@@ -1,14 +1,10 @@
-﻿using CVSPharmacy_Backend.Core.Entities;
+using CVSPharmacy_Backend.Core.Entities;
 
 namespace CVSPharmacy_Backend.Core.Interfaces
 {
     public interface IOrdenCompraRepository : IBaseRepository<OrdenesCompra>
     {
         Task<OrdenesCompra?> GetOrdenParaActualizarAsync(int id);
-
-        Task<Proveedor?> GetProveedorAsync(int id);
-
-        Task<List<Producto>> GetProductosAsync(IEnumerable<int> ids);
 
         Task<bool> TieneRecepcionesAsync(int ordenId);
 

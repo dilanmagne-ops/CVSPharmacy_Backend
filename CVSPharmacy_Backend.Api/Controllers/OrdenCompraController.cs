@@ -1,4 +1,9 @@
-﻿using CVSPharmacy_Backend.Api.Response;
+using AutoMapper;
+using FluentValidation;
+using CVSPharmacy_Backend.Core.Entities;
+using CVSPharmacy_Backend.Core.QueryFilters;
+using CVSPharmacy_Backend.Services.Validators.OrdenCompra;
+using CVSPharmacy_Backend.Api.Response;
 using CVSPharmacy_Backend.Core.Dtos.OrdenCompra;
 using CVSPharmacy_Backend.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
@@ -15,7 +20,12 @@ namespace CVSPharmacy_Backend.Api.Controllers
         private readonly IConfiguration _configuration;
         private readonly IWebHostEnvironment _environment;
 
+        private readonly IMapper _mapper;
+        private readonly GuardarOrdenCompraDtoValidator _validator;
+
         public OrdenCompraController(
+            IMapper mapper,
+            GuardarOrdenCompraDtoValidator validator,
             IOrdenCompraService ordenCompraService,
             IConfiguration configuration,
             IWebHostEnvironment environment)
@@ -23,20 +33,19 @@ namespace CVSPharmacy_Backend.Api.Controllers
             _ordenCompraService = ordenCompraService;
             _configuration = configuration;
             _environment = environment;
+            _mapper = mapper;
+            _validator = validator;
         }
         // GET: api/purchase-orders
         [HttpGet]
         public async Task<IActionResult> GetOrdenes(
-            [FromQuery] string? status,
-            [FromQuery] int? supplierId,
-            [FromQuery] DateTime? from,
-            [FromQuery] DateTime? to)
+            [FromQuery] OrdenCompraQueryFilters filters)
         {
             var ordenes = await _ordenCompraService
-                .GetAllOrdenesAsync(status, supplierId, from, to);
+                .GetAllOrdenesAsync(filters);
 
             var response =
-                new ApiResponse<IEnumerable<OrdenCompraDto>>(ordenes);
+                new ApiResponse<IEnumerable<OrdenCompraDto>>(_mapper.Map<IEnumerable<OrdenCompraDto>>(ordenes));
 
             return Ok(response);
         }
@@ -47,13 +56,13 @@ namespace CVSPharmacy_Backend.Api.Controllers
             var orden = await _ordenCompraService
                 .GetOrdenByIdAsync(id);
 
-            var response = new ApiResponse<OrdenCompraDto>(orden);
+            var response = new ApiResponse<OrdenCompraDto>(_mapper.Map<OrdenCompraDto>(orden));
 
             return Ok(response);
         }
         // POST: api/purchase-orders
         [HttpPost]
-        public async Task<IActionResult> InsertOrden([FromBody] GuardarOrdenCompraDto ordenDto)
+        public async Task<IActionResult> InsertOrden([FromBody] GuardarOrdenCompraDto? ordenDto)
         {
             // Responsable temporal para pruebas, sin implementar login.
             if (!_environment.IsDevelopment())
@@ -74,9 +83,9 @@ namespace CVSPharmacy_Backend.Api.Controllers
             }
 
             var orden = await _ordenCompraService
-                .CrearOrdenAsync(ordenDto, usuarioId.Value);
+                .CrearOrdenAsync(await ValidarYMapearAsync(ordenDto), usuarioId.Value);
 
-            var response = new ApiResponse<OrdenCompraDto>(orden);
+            var response = new ApiResponse<OrdenCompraDto>(_mapper.Map<OrdenCompraDto>(orden));
 
             return CreatedAtAction(
                 nameof(GetOrdenById),
@@ -86,10 +95,21 @@ namespace CVSPharmacy_Backend.Api.Controllers
 
         // PUT: api/purchase-orders/{id}
         [HttpPut("{id:int}")]
-        public async Task<IActionResult> UpdateOrden(int id, [FromBody] GuardarOrdenCompraDto ordenDto)
+        public async Task<IActionResult> UpdateOrden(int id, [FromBody] GuardarOrdenCompraDto? ordenDto)
         {
-            var orden = await _ordenCompraService.ActualizarOrdenAsync(id, ordenDto);
-            return Ok(new ApiResponse<OrdenCompraDto>(orden));
+            if (id <= 0)
+                throw new BusinessException("El ID de la orden debe ser mayor que cero.");
+            var solicitud = await ValidarYMapearAsync(ordenDto);
+            var orden = await _ordenCompraService.ActualizarOrdenAsync(id, solicitud);
+            return Ok(new ApiResponse<OrdenCompraDto>(_mapper.Map<OrdenCompraDto>(orden)));
+        }
+
+        private async Task<OrdenesCompra> ValidarYMapearAsync(GuardarOrdenCompraDto? dto)
+        {
+            if (dto is null)
+                throw new BusinessException("El cuerpo de la solicitud es obligatorio.");
+            await _validator.ValidateAndThrowAsync(dto);
+            return _mapper.Map<OrdenesCompra>(dto);
         }
 
         // PATCH: api/purchase-orders/{id}/issue
@@ -97,7 +117,7 @@ namespace CVSPharmacy_Backend.Api.Controllers
         public async Task<IActionResult> EmitirOrden(int id)
         {
             var orden = await _ordenCompraService.EmitirOrdenAsync(id);
-            return Ok(new ApiResponse<OrdenCompraDto>(orden));
+            return Ok(new ApiResponse<OrdenCompraDto>(_mapper.Map<OrdenCompraDto>(orden)));
         }
 
         // PATCH: api/purchase-orders/{id}/cancel
@@ -105,7 +125,7 @@ namespace CVSPharmacy_Backend.Api.Controllers
         public async Task<IActionResult> CancelarOrden(int id)
         {
             var orden = await _ordenCompraService.CancelarOrdenAsync(id);
-            return Ok(new ApiResponse<OrdenCompraDto>(orden));
+            return Ok(new ApiResponse<OrdenCompraDto>(_mapper.Map<OrdenCompraDto>(orden)));
         }
     }
 }
