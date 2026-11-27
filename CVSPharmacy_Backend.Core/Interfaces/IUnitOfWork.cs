@@ -7,7 +7,7 @@ public interface IUnitOfWork
     IProductoRepository ProductoRepository { get; }
     IProveedorRepository ProveedorRepository { get; }
     IOrdenCompraRepository OrdenCompraRepository { get; }
-    IBaseRepository<Usuario> UsuarioRepository { get; }
+    IUsuarioRepository UsuarioRepository { get; }
     IRecepcionRepository RecepcionRepository { get; }
     Task<T> EjecutarEnTransaccionAsync<T>(Func<Task<T>> operacion);
     Task SaveChangesAsync();
