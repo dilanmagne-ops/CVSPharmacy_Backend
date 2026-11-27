@@ -5,6 +5,7 @@ namespace CVSPharmacy_Backend.Core.Interfaces;
 public interface IUnitOfWork
 {
     IProductoRepository ProductoRepository { get; }
+    IReportesRepository ReportesRepository { get; }
     IProveedorRepository ProveedorRepository { get; }
     IOrdenCompraRepository OrdenCompraRepository { get; }
     IUsuarioRepository UsuarioRepository { get; }

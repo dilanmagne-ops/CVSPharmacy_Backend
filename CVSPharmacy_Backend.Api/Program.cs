@@ -33,6 +33,11 @@ namespace CVSPharmacy_Backend
             builder.Services.AddScoped(typeof(IBaseRepository<>),typeof(BaseRepository<>));
             builder.Services.AddScoped<IProductoRepository, ProductoRepository>();
             builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+            builder.Services.AddSingleton<IDbConnectionFactory>(_ => new DbConnectionFactory(connectionString
+                ?? throw new InvalidOperationException("Configure ConnectionStrings:ConnectionMySql.")));
+            builder.Services.AddScoped<IDapperContext, DapperContext>();
+            builder.Services.AddScoped<IReportesRepository, ReportesRepository>();
+            builder.Services.AddScoped<IReportesService, ReportesService>();
             builder.Services.AddScoped<IUsuarioRepository, UsuarioRepository>();
             builder.Services.AddSingleton<IVerificadorPassword, VerificadorPassword>();
             builder.Services.AddScoped<IAuthService, AuthService>();
