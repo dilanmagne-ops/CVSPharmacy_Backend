@@ -11,9 +11,7 @@ namespace CVSPharmacy_Backend.Core.Interfaces
         void ReemplazarDetalles(
             OrdenesCompra orden,
             IEnumerable<DetalleOrdenCompra> nuevosDetalles);
-        Task<Usuario?> GetUsuarioAsync(int id);
 
         Task<List<string>> GetNumerosOrdenAsync(string prefijo);
-        Task<T> EjecutarEnTransaccionAsync<T>(Func<Task<T>> operacion);
     }
 }

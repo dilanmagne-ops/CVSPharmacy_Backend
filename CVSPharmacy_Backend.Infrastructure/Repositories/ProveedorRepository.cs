@@ -35,8 +35,6 @@ public class ProveedorRepository : BaseRepository<Proveedor>, IProveedorReposito
             (!excludeId.HasValue || proveedor.Id != excludeId.Value));
     }
 
-    protected override Task GuardarSiCorrespondeAsync() => Task.CompletedTask;
-
     public override Task Delete(int id)
     {
         // RN-07: conservar el registro y su historial; la baja se realiza por estado.

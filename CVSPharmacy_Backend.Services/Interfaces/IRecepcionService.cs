@@ -1,12 +1,13 @@
-using CVSPharmacy_Backend.Core.Dtos.Recepcion;
+using CVSPharmacy_Backend.Core.Entities;
+using CVSPharmacy_Backend.Core.QueryFilters;
 
 namespace CVSPharmacy_Backend.Services.Interfaces;
 
 public interface IRecepcionService
 {
-    Task<IEnumerable<RecepcionDto>> GetRecepcionesAsync(
-        int ordenId, DateTime? from = null, DateTime? to = null);
+    Task<IEnumerable<Recepcion>> GetRecepcionesAsync(
+        int ordenId, RecepcionQueryFilters filters);
 
-    Task<RecepcionDto> RegistrarRecepcionAsync(
-        int ordenId, GuardarRecepcionDto recepcionDto, int usuarioId);
+    Task<Recepcion> RegistrarRecepcionAsync(
+        int ordenId, Recepcion recepcion, int usuarioId);
 }

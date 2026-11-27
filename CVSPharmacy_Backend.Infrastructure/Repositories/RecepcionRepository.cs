@@ -4,7 +4,6 @@ using CVSPharmacy_Backend.Core.Exceptions;
 using CVSPharmacy_Backend.Core.Interfaces;
 using CVSPharmacy_Backend.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
-using MySqlConnector;
 
 namespace CVSPharmacy_Backend.Infrastructure.Repositories;
 
@@ -43,21 +42,6 @@ public class RecepcionRepository : BaseRepository<Recepcion>, IRecepcionReposito
         // Utiliza la comparacion de MySQL y el mismo indice unico de producto/lote.
         return _context.Lotes.AnyAsync(lote =>
             lote.ProductoId == productoId && lote.NumeroLote == numeroLote);
-    }
-
-    public override async Task Add(Recepcion recepcion)
-    {
-        try
-        {
-            // El contexto es Scoped: guarda recepcion, lotes y el estado de la orden
-            // que el servicio modifico dentro de la transaccion de CU-05.
-            await base.Add(recepcion);
-        }
-        catch (DbUpdateException ex)
-            when (ex.InnerException is MySqlException { Number: 1062 })
-        {
-            throw new NumeroLoteDuplicadoException(ex);
-        }
     }
 
     public override Task Delete(int id)
