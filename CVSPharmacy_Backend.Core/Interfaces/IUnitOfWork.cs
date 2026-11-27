@@ -4,11 +4,11 @@ namespace CVSPharmacy_Backend.Core.Interfaces;
 
 public interface IUnitOfWork
 {
-    IProductoRepository ProductoRepository { get; }
     IReportesRepository ReportesRepository { get; }
+    IProductoRepository ProductoRepository { get; }
     IProveedorRepository ProveedorRepository { get; }
     IOrdenCompraRepository OrdenCompraRepository { get; }
-    IUsuarioRepository UsuarioRepository { get; }
+    IBaseRepository<Usuario> UsuarioRepository { get; }
     IRecepcionRepository RecepcionRepository { get; }
     Task<T> EjecutarEnTransaccionAsync<T>(Func<Task<T>> operacion);
     Task SaveChangesAsync();

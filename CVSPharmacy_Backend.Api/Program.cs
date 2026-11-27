@@ -3,11 +3,6 @@ using CVSPharmacy_Backend.Core.Interfaces;
 using CVSPharmacy_Backend.Infrastructure.Data;
 using CVSPharmacy_Backend.Infrastructure.Repositories;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using CVSPharmacy_Backend.Api.Security;
-using CVSPharmacy_Backend.Infrastructure.Security;
-using CVSPharmacy_Backend.Services.Validators.Auth;
-using CVSPharmacy_Backend.Services.Validators.Usuario;
 using CVSPharmacy_Backend.Services.Validators.Producto;
 using CVSPharmacy_Backend.Services.Validators.Proveedor;
 using CVSPharmacy_Backend.Services.Services;
@@ -32,19 +27,12 @@ namespace CVSPharmacy_Backend
             #region Inyeccion de Dependencias
             builder.Services.AddScoped(typeof(IBaseRepository<>),typeof(BaseRepository<>));
             builder.Services.AddScoped<IProductoRepository, ProductoRepository>();
-            builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
             builder.Services.AddSingleton<IDbConnectionFactory>(_ => new DbConnectionFactory(connectionString
                 ?? throw new InvalidOperationException("Configure ConnectionStrings:ConnectionMySql.")));
             builder.Services.AddScoped<IDapperContext, DapperContext>();
             builder.Services.AddScoped<IReportesRepository, ReportesRepository>();
             builder.Services.AddScoped<IReportesService, ReportesService>();
-            builder.Services.AddScoped<IUsuarioRepository, UsuarioRepository>();
-            builder.Services.AddSingleton<IVerificadorPassword, VerificadorPassword>();
-            builder.Services.AddScoped<IAuthService, AuthService>();
-            builder.Services.AddScoped<IUsuarioService, UsuarioService>();
-            builder.Services.AddScoped<CrearUsuarioValidator>();
-            builder.Services.AddScoped<EditarUsuarioValidator>();
-            builder.Services.AddScoped<LoginDtoValidator>();
+            builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
             builder.Services.AddScoped<IProductoService, ProductoService>();
             builder.Services.AddScoped<IProveedorRepository, ProveedorRepository>();
             builder.Services.AddScoped<IProveedorService, ProveedorService>();
@@ -72,16 +60,6 @@ namespace CVSPharmacy_Backend
             // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
             builder.Services.AddOpenApi();
 
-            var jwt = new JwtConfig(builder.Configuration);
-            builder.Services.AddSingleton(jwt);
-            builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-                .AddJwtBearer(options =>
-                {
-                    options.MapInboundClaims = false;
-                    options.TokenValidationParameters = jwt.ParametrosValidacion();
-                });
-            PermisosFarmacia.Registrar(builder.Services);
-
             var app = builder.Build();
             app.UseMiddleware<ExceptionHandlingMiddleware>();
             // Configure the HTTP request pipeline.
@@ -92,7 +70,6 @@ namespace CVSPharmacy_Backend
 
             app.UseHttpsRedirection();
 
-            app.UseAuthentication();
             app.UseAuthorization();
 
             app.MapControllers();

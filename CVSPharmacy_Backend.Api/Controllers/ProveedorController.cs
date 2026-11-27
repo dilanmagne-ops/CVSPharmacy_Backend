@@ -1,5 +1,3 @@
-using CVSPharmacy_Backend.Api.Security;
-using Microsoft.AspNetCore.Authorization;
 using AutoMapper;
 using CVSPharmacy_Backend.Api.Response;
 using CVSPharmacy_Backend.Core.Dtos.Proveedor;
@@ -13,7 +11,6 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace CVSPharmacy_Backend.Api.Controllers;
 
-[Authorize(Policy = PermisosFarmacia.PersonalFarmacia)]
 [ApiController]
 [Route("api/suppliers")]
 public sealed class ProveedorController(IProveedorService proveedorService, IMapper mapper,
@@ -48,7 +45,6 @@ public sealed class ProveedorController(IProveedorService proveedorService, IMap
         return Ok(Respuesta(await proveedorService.UpdateAsync(id, cambios)));
     }
 
-    [Authorize(Roles = "Administrador")]
     [HttpPatch("{id:int}/status")]
     public async Task<IActionResult> ChangeStatus(int id, [FromBody] CambiarEstadoProveedorDto? estadoDto)
     {

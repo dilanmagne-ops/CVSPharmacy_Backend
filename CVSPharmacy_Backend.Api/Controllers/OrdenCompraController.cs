@@ -1,5 +1,3 @@
-using CVSPharmacy_Backend.Api.Security;
-using Microsoft.AspNetCore.Authorization;
 using AutoMapper;
 using FluentValidation;
 using CVSPharmacy_Backend.Core.Entities;
@@ -9,16 +7,18 @@ using CVSPharmacy_Backend.Api.Response;
 using CVSPharmacy_Backend.Core.Dtos.OrdenCompra;
 using CVSPharmacy_Backend.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
+using System.Net;
 using CVSPharmacy_Backend.Core.Exceptions;
 
 namespace CVSPharmacy_Backend.Api.Controllers
 {
     [Route("api/purchase-orders")]
-    [Authorize(Policy = PermisosFarmacia.PersonalFarmacia)]
     [ApiController]
     public class OrdenCompraController : ControllerBase
     {
         private readonly IOrdenCompraService _ordenCompraService;
+        private readonly IConfiguration _configuration;
+        private readonly IWebHostEnvironment _environment;
 
         private readonly IMapper _mapper;
         private readonly GuardarOrdenCompraDtoValidator _validator;
@@ -26,9 +26,13 @@ namespace CVSPharmacy_Backend.Api.Controllers
         public OrdenCompraController(
             IMapper mapper,
             GuardarOrdenCompraDtoValidator validator,
-            IOrdenCompraService ordenCompraService)
+            IOrdenCompraService ordenCompraService,
+            IConfiguration configuration,
+            IWebHostEnvironment environment)
         {
             _ordenCompraService = ordenCompraService;
+            _configuration = configuration;
+            _environment = environment;
             _mapper = mapper;
             _validator = validator;
         }
@@ -60,8 +64,26 @@ namespace CVSPharmacy_Backend.Api.Controllers
         [HttpPost]
         public async Task<IActionResult> InsertOrden([FromBody] GuardarOrdenCompraDto? ordenDto)
         {
+            // Responsable temporal para pruebas, sin implementar login.
+            if (!_environment.IsDevelopment())
+            {
+                throw new BusinessException(
+                    "El usuario de pruebas solo esta disponible en Development.",
+                    HttpStatusCode.Forbidden);
+            }
+
+            var usuarioId = _configuration
+                .GetValue<int?>("Desarrollo:UsuarioId");
+
+            if (!usuarioId.HasValue || usuarioId.Value <= 0)
+            {
+                throw new BusinessException(
+                    "Configure Desarrollo:UsuarioId con un usuario de pruebas valido.",
+                    HttpStatusCode.InternalServerError);
+            }
+
             var orden = await _ordenCompraService
-                .CrearOrdenAsync(await ValidarYMapearAsync(ordenDto), User.ObtenerIdUsuario());
+                .CrearOrdenAsync(await ValidarYMapearAsync(ordenDto), usuarioId.Value);
 
             var response = new ApiResponse<OrdenCompraDto>(_mapper.Map<OrdenCompraDto>(orden));
 
@@ -91,7 +113,6 @@ namespace CVSPharmacy_Backend.Api.Controllers
         }
 
         // PATCH: api/purchase-orders/{id}/issue
-        [Authorize(Roles = "Administrador")]
         [HttpPatch("{id:int}/issue")]
         public async Task<IActionResult> EmitirOrden(int id)
         {
@@ -100,7 +121,6 @@ namespace CVSPharmacy_Backend.Api.Controllers
         }
 
         // PATCH: api/purchase-orders/{id}/cancel
-        [Authorize(Roles = "Administrador")]
         [HttpPatch("{id:int}/cancel")]
         public async Task<IActionResult> CancelarOrden(int id)
         {
