@@ -178,7 +178,7 @@ public class OrdenCompraService(IUnitOfWork unitOfWork) : IOrdenCompraService
         {
             throw new BusinessException("El ID de la orden debe ser mayor que cero.");
         }
-        return await Ordenes.EjecutarEnTransaccionAsync(async () =>
+        return await unitOfWork.EjecutarEnTransaccionAsync(async () =>
         {
             var orden = await Ordenes.GetOrdenParaActualizarAsync(id);
             if (orden is null)
@@ -214,7 +214,7 @@ public class OrdenCompraService(IUnitOfWork unitOfWork) : IOrdenCompraService
         {
             throw new BusinessException("El ID de la orden debe ser mayor que cero.");
         }
-        return await Ordenes.EjecutarEnTransaccionAsync(async () =>
+        return await unitOfWork.EjecutarEnTransaccionAsync(async () =>
         {
             var orden = await Ordenes.GetOrdenParaActualizarAsync(id);
             if (orden is null)
@@ -254,7 +254,7 @@ public class OrdenCompraService(IUnitOfWork unitOfWork) : IOrdenCompraService
         {
             throw new BusinessException("El ID de la orden debe ser mayor que cero.");
         }
-        return await Ordenes.EjecutarEnTransaccionAsync(async () =>
+        return await unitOfWork.EjecutarEnTransaccionAsync(async () =>
         {
             var orden = await Ordenes.GetOrdenParaActualizarAsync(id);
             if (orden is null)

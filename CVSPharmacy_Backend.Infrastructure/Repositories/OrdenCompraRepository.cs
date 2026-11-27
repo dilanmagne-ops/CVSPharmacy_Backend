@@ -1,11 +1,9 @@
-using System.Data;
 using System.Net;
 using CVSPharmacy_Backend.Core.Entities;
 using CVSPharmacy_Backend.Core.Interfaces;
 using CVSPharmacy_Backend.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using CVSPharmacy_Backend.Core.Exceptions;
-using MySqlConnector;
 namespace CVSPharmacy_Backend.Infrastructure.Repositories;
 
 public class OrdenCompraRepository : BaseRepository<OrdenesCompra>, IOrdenCompraRepository
@@ -96,13 +94,6 @@ public class OrdenCompraRepository : BaseRepository<OrdenesCompra>, IOrdenCompra
         }
     }
 
-    public async Task<Usuario?> GetUsuarioAsync(int id)
-    {
-        return await _context.Usuarios
-            .AsNoTracking()
-            .FirstOrDefaultAsync(usuario => usuario.Id == id);
-    }
-
     public async Task<List<string>> GetNumerosOrdenAsync(string prefijo)
     {
         return await _entities
@@ -111,43 +102,6 @@ public class OrdenCompraRepository : BaseRepository<OrdenesCompra>, IOrdenCompra
             .Select(orden => orden.Numero)
             .ToListAsync();
     }
-    protected override Task GuardarSiCorrespondeAsync() => Task.CompletedTask;
-
-    public async Task<T> EjecutarEnTransaccionAsync<T>(Func<Task<T>> operacion)
-    {
-        await using var transaccion = await _context.Database
-            .BeginTransactionAsync(IsolationLevel.ReadCommitted);
-        try
-        {
-            var resultado = await operacion();
-            await transaccion.CommitAsync();
-            return resultado;
-        }
-        catch (MySqlException ex) when (ex.Number is 1205 or 1213)
-        {
-            await transaccion.RollbackAsync();
-            _context.ChangeTracker.Clear();
-            throw new BusinessException(
-                "La orden esta siendo modificada. Intente nuevamente.",
-                HttpStatusCode.Conflict);
-        }
-        catch (DbUpdateException ex)
-            when (ex.InnerException is MySqlException { Number: 1205 or 1213 })
-        {
-            await transaccion.RollbackAsync();
-            _context.ChangeTracker.Clear();
-            throw new BusinessException(
-                "La orden esta siendo modificada. Intente nuevamente.",
-                HttpStatusCode.Conflict);
-        }
-        catch
-        {
-            await transaccion.RollbackAsync();
-            _context.ChangeTracker.Clear();
-            throw;
-        }
-    }
-
     public override Task Delete(int id)
     {
         throw new BusinessException(

@@ -45,9 +45,6 @@ namespace CVSPharmacy_Backend.Infrastructure.Repositories
             return producto;
         }
 
-        // Producto confirma los cambios mediante la unidad de trabajo.
-        protected override Task GuardarSiCorrespondeAsync() => Task.CompletedTask;
-
         public async Task<List<Producto>> GetProductosAsync(
             IEnumerable<int> ids)
         {
